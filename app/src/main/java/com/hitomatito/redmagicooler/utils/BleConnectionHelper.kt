@@ -1,7 +1,6 @@
 package com.hitomatito.redmagicooler.utils
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -78,36 +77,6 @@ object BleConnectionHelper {
         } catch (e: Exception) {
             Log.w(tag, "No se pudo refrescar cache GATT (puede no ser necesario): ${e.message}")
             // No es un error crítico, algunos dispositivos no lo necesitan
-            false
-        }
-    }
-
-    /**
-     * Remove o pareamento (bond) de um dispositivo Bluetooth via reflection.
-     * 
-     * Coolers RedMagic não armazenam chaves LTK de forma persistente.
-     * Se o Android mantiver o registro de pareamento após uma desconexão ou ciclo de energia,
-     * as tentativas subsequentes de conexão falham com GATT status 22 (LOCAL HOST TERMINATED).
-     * 
-     * @param device Dispositivo cujo pareamento deve ser removido
-     * @param tag Tag para logging
-     * @return true se removeBond foi invocado com sucesso, false caso contrário
-     */
-    @SuppressLint("MissingPermission")
-    fun unpairDevice(device: BluetoothDevice?, tag: String = TAG): Boolean {
-        if (device == null) return false
-        return try {
-            if (device.bondState != BluetoothDevice.BOND_NONE) {
-                Log.d(tag, "Removendo pareamento obsoleto de ${device.address} (bondState=${device.bondState})...")
-                val removeBondMethod = device.javaClass.getMethod("removeBond")
-                val result = removeBondMethod.invoke(device) as? Boolean ?: false
-                Log.d(tag, "removeBond() retorno: $result")
-                result
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            Log.w(tag, "Erro ao invocar removeBond: ${e.message}")
             false
         }
     }
