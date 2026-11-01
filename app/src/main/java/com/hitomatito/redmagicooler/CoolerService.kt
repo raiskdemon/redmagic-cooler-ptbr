@@ -645,6 +645,11 @@ class CoolerService : Service() {
             
             // Conectar directamente
             @SuppressLint("MissingPermission")
+            // Coolers RedMagic não armazenam pareamento persistente; remover bond antigo para evitar erro 22
+            if (device.bondState == BluetoothDevice.BOND_BONDED) {
+                Log.w(TAG, "Dispositivo já pareado no sistema. Removendo pareamento obsoleto antes de conectar...")
+                BleConnectionHelper.unpairDevice(device, TAG)
+            }
             bluetoothGatt = device.connectGatt(
                 this,
                 false,  // autoConnect=false para conexión rápida
@@ -787,6 +792,12 @@ class CoolerService : Service() {
                     }
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    // Coolers RedMagic não persistem LTK de pareamento: se desconectou com erro ou status 22,
+                    // remover pareamento obsoleto imediatamente para não bloquear a próxima conexão
+                    if (status == 22 || gatt.device.bondState != BluetoothDevice.BOND_NONE) {
+                        Log.w(TAG, "Limpando pareamento obsoleto após desconexão (status=$status, bondState=${gatt.device.bondState})")
+                        BleConnectionHelper.unpairDevice(gatt.device, TAG)
+                    }
                     isConnected = false
                     Log.d(TAG, "Desconectado del cooler, status: $status")
                     updateNotification("Desconectado", 0, currentTemp)
@@ -942,7 +953,7 @@ class CoolerService : Service() {
                 
                 if (fanCharacteristic != null) {
                     try {
-                        gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                        gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
                     } catch (e: Exception) {
                         Log.w(TAG, "Erro ao definir prioridade alta: ${e.message}")
                     }

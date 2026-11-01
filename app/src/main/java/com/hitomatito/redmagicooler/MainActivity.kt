@@ -158,15 +158,19 @@ class MainActivity : ComponentActivity() {
                         BluetoothDevice.BOND_BONDED -> {
                             runOnUiThread {
                                 statusMessage = "Pareado! Descobrindo serviços..."
-                                Log.d(TAG, "Dispositivo pareado com sucesso. Iniciando discoverServices()")
+                                Log.d(TAG, "Dispositivo pareado com sucesso.")
                                 discoveryTimeoutJob?.cancel()
                                 discoveryTimeoutJob = null
                                 
-                                monitoringScope.launch {
-                                    delay(1200L)
-                                    if (isFinishing || isDestroyed || !isConnected) return@launch
-                                    runOnUiThread {
-                                        startServiceDiscovery()
+                                if (fanCharacteristic == null && !isDiscoveryInProgress) {
+                                    monitoringScope.launch {
+                                        delay(800L)
+                                        if (isFinishing || isDestroyed || !isConnected) return@launch
+                                        runOnUiThread {
+                                            if (fanCharacteristic == null && !isDiscoveryInProgress) {
+                                                startServiceDiscovery()
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -479,6 +483,12 @@ class MainActivity : ComponentActivity() {
             
             val device = bluetoothAdapter.getRemoteDevice(macAddress)
             
+            // Coolers RedMagic não armazenam pareamento persistente; remover bond antigo para evitar erro 22
+            if (device.bondState == BluetoothDevice.BOND_BONDED) {
+                Log.w(TAG, "Dispositivo já pareado no sistema. Removendo pareamento obsoleto antes de conectar...")
+                BleConnectionHelper.unpairDevice(device, TAG)
+            }
+            
             // Limpiar conexión anterior
             BleConnectionHelper.safeCloseGatt(bluetoothGatt, TAG)
             bluetoothGatt = null
@@ -702,6 +712,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 
+                // Coolers RedMagic não armazenam pareamento persistente; remover bond antigo para evitar erro 22
+                if (device.bondState == BluetoothDevice.BOND_BONDED) {
+                    Log.w(TAG, "Dispositivo escaneado já pareado no sistema. Removendo pareamento obsoleto antes de conectar...")
+                    BleConnectionHelper.unpairDevice(device, TAG)
+                }
+                
                 bluetoothGatt = device.connectGatt(
                     this@MainActivity,
                     false,
@@ -860,44 +876,44 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this@MainActivity, "Conectado com sucesso", Toast.LENGTH_SHORT).show()
             
             try {
-                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                // Usar prioridade balanceada (30ms) que é o intervalo nativo do Cooler 5 Pro
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
             } catch (e: Exception) {
-                Log.w(TAG, "Erro ao definir prioridade alta: ${e.message}")
+                Log.w(TAG, "Erro ao definir prioridade: ${e.message}")
             }
             
             handleSuccessfulConnection()
             thermalMonitor.startAmbientSensor()
             startThermalMonitoring()
             
-            try {
-                if (!BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
-                    return
-                }
-                
-                // Habilitar notificações de temperatura na característica 0x1015
-                val notifChar = fanService?.getCharacteristic(CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID)
-                if (notifChar != null) {
-                    @SuppressLint("MissingPermission")
-                    gatt.setCharacteristicNotification(notifChar, true)
-                    val descriptor = notifChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
-                    if (descriptor != null) {
-                        @Suppress("DEPRECATION")
-                        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        @SuppressLint("MissingPermission")
-                        gatt.writeDescriptor(descriptor)
-                        Log.d(TAG, "Notificações de temperatura habilitadas em 0x1015")
+            // Habilitar notificações de temperatura com delay de 500ms para estabilizar
+            monitoringScope.launch {
+                delay(500L)
+                if (isFinishing || isDestroyed || !isConnected) return@launch
+                try {
+                    if (!BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
+                        return@launch
                     }
-                }
-                
-                // Ler velocidade apenas se a característica suportar leitura (evita erro de ATT)
-                fanCharacteristic?.let { fc ->
-                    if (fc.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0) {
+                    val notifChar = fanService?.getCharacteristic(CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID)
+                    if (notifChar != null) {
                         @SuppressLint("MissingPermission")
-                        gatt.readCharacteristic(fc)
+                        gatt.setCharacteristicNotification(notifChar, true)
+                        val descriptor = notifChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                        if (descriptor != null) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                @SuppressLint("MissingPermission")
+                                gatt.writeDescriptor(descriptor)
+                            }
+                            Log.d(TAG, "Notificações de temperatura habilitadas em 0x1015")
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro configurando notificações de temperatura: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Erro configurando características: ${e.message}")
             }
         } else {
             if (services.isEmpty()) {
@@ -1113,6 +1129,13 @@ class MainActivity : ComponentActivity() {
                         isConnecting = false
                         discoveryTimeoutJob?.cancel()
                         discoveryTimeoutJob = null
+
+                        // Coolers RedMagic não persistem LTK de pareamento: se desconectou com erro ou status 22,
+                        // remover pareamento obsoleto imediatamente para não bloquear a próxima conexão
+                        if (status == 22 || gatt.device.bondState != BluetoothDevice.BOND_NONE) {
+                            Log.w(TAG, "Limpando pareamento obsoleto após desconexão (status=$status, bondState=${gatt.device.bondState})")
+                            BleConnectionHelper.unpairDevice(gatt.device, TAG)
+                        }
 
                         try {
                             gatt.close()
