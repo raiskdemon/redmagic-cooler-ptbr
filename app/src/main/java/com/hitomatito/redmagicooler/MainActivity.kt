@@ -674,13 +674,13 @@ class MainActivity : ComponentActivity() {
         lightCharacteristic = null
         isConnected = false
         
-        // Mostrar error al usuario inmediatamente, no tras agotar reintentos
-        connectionError = "No se pudo conectar al cooler.\nVerificá que esté encendido y cerca del teléfono."
+        // Mostrar erro ao usuário imediatamente
+        connectionError = "Não foi possível conectar ao cooler.\nVerifique se está ligado e perto do celular."
         if (profileId != null && status22ReconnectAttempts < maxStatus22Reconnects) {
             status22ReconnectAttempts++
             val attempt = status22ReconnectAttempts
-            Log.w(TAG, "Reintentando conexión tras timeout ($attempt/$maxStatus22Reconnects)...")
-            connectionError = "El cooler no responde.\nReintentando ($attempt/$maxStatus22Reconnects)..."
+            Log.w(TAG, "Tentando reconectar após timeout ($attempt/$maxStatus22Reconnects)...")
+            connectionError = "O cooler não respondeu.\nTentando reconectar ($attempt/$maxStatus22Reconnects)..."
             val backoffMs = 2000L
             monitoringScope.launch {
                 delay(backoffMs)
@@ -691,20 +691,20 @@ class MainActivity : ComponentActivity() {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             connectToProfile(profile, isRetry = true)
                         } else {
-                            Log.w(TAG, "API level insuficiente para reconectar tras timeout")
-                            statusMessage = "Error: API no compatible para reconexión"
+                            Log.w(TAG, "API level insuficiente para reconectar após timeout")
+                            statusMessage = "Erro: API não compatível para reconexão"
                             status22ReconnectAttempts = 0
                         }
                     } else {
-                        statusMessage = "Error al reconectar tras timeout"
+                        statusMessage = "Erro ao reconectar após timeout"
                         status22ReconnectAttempts = 0
                     }
                 }
             }
         } else {
-            statusMessage = "Error: tiempo de conexión agotado"
-            connectionError = "El cooler no responde al conectar.\n" +
-                "Desactiva y activa el Bluetooth del teléfono y vuelve a intentarlo."
+            statusMessage = "Erro: tempo de conexão esgotado"
+            connectionError = "O cooler não respondeu ao conectar.\n" +
+                "Desligue o cooler da tomada por 5 segundos, certifique-se de que o Goper está fechado, e tente novamente."
             currentConnectedProfileId?.let { pid ->
                 profileRepository.updateConnectionState(pid, false)
             }
@@ -894,49 +894,55 @@ class MainActivity : ComponentActivity() {
                             return@runOnUiThread
                         }
                         
-                        // Delay mínimo antes de descubrir servicios (la app oficial lo
-                        // hace ~14 ms tras el callback; 800 ms daba ventaja al stack)
+                        try {
+                            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Erro ao definir prioridade de conexao: ${e.message}")
+                        }
+
+                        // Delay de 600ms para estabilização da conexão no Android 14/15 (Samsung One UI)
                         monitoringScope.launch {
-                            delay(100L)
+                            delay(600L)
                             if (isFinishing || isDestroyed || !isConnected) return@launch
                             
                             runOnUiThread {
                                 isDiscoveryInProgress = true
-                                statusMessage = "Descubriendo servicios..."
+                                statusMessage = "Descobrindo serviços..."
                                 try {
                                     @SuppressLint("MissingPermission")
                                     if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
-                                        // Verificar si ya hay servicios cacheados del BLE stack
+                                        // Refrescar cache GATT para evitar serviços vazios
+                                        BleConnectionHelper.refreshGattCache(gatt, TAG)
+                                        
+                                        // Verificar se já há serviços no cache BLE
                                         val cachedServices = gatt.services
                                         if (cachedServices != null && cachedServices.isNotEmpty()) {
-                                            Log.d(TAG, "Servicios disponibles desde caché BLE (${cachedServices.size}), saltando discoverServices()")
+                                            Log.d(TAG, "Serviços disponíveis a partir do cache BLE (${cachedServices.size})")
                                             isDiscoveryInProgress = false
                                             processDiscoveredServices(gatt, cachedServices)
                                             return@runOnUiThread
                                         }
-                                        Log.d(TAG, "Iniciando descubrimiento de servicios...")
+                                        Log.d(TAG, "Iniciando descoberta de serviços...")
                                         gatt.discoverServices()
                                         
-                                        // Timeout watchdog: si discoverServices no responde en 10s, reconectar.
-                                        // Un discovery sano tarda <2 s; 30 s de espera solo alarga el fallo.
+                                        // Timeout watchdog: se discoverServices não responder em 10s, reconectar.
                                         discoveryTimeoutJob?.cancel()
                                         discoveryTimeoutJob = monitoringScope.launch {
                                             delay(10000L)
                                             if (isFinishing || isDestroyed || !isDiscoveryInProgress) return@launch
                                             runOnUiThread {
-                                                Log.w(TAG, "⚠️ discoverServices() timeout - sin respuesta en 10s")
-                                                statusMessage = "Tiempo de espera agotado, reintentando..."
+                                                Log.w(TAG, "⚠️ discoverServices() timeout - sem resposta em 10s")
+                                                statusMessage = "Tempo de espera esgotado, tentando novamente..."
                                                 isDiscoveryInProgress = false
                                                 isDiscoveryTimedOut = true
-                                                // Disparar desconexión para que el callback maneje el reintento
+                                                // Disparar desconexão para que o callback gerencie o reintento
                                                 try {
                                                     @SuppressLint("MissingPermission")
                                                     if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
                                                         bluetoothGatt?.disconnect()
                                                     }
                                                 } catch (e: SecurityException) {
-                                                    Log.e(TAG, "SecurityException al desconectar por timeout: ${e.message}")
-                                                    // No habrá callback STATE_DISCONNECTED: manejar aquí y limpiar el flag
+                                                    Log.e(TAG, "SecurityException ao desconectar por timeout: ${e.message}")
                                                     isDiscoveryTimedOut = false
                                                     handleDiscoverServicesTimeout()
                                                 }
@@ -944,9 +950,9 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 } catch (e: SecurityException) {
-                                    Log.e(TAG, "SecurityException al descubrir servicios: ${e.message}")
+                                    Log.e(TAG, "SecurityException ao descobrir serviços: ${e.message}")
                                     isDiscoveryInProgress = false
-                                    statusMessage = "Error de permisos al descubrir servicios"
+                                    statusMessage = "Permissão necessária para descobrir serviços"
                                 }
                             }
                         }
@@ -1019,10 +1025,8 @@ class MainActivity : ComponentActivity() {
                             }
                             status22ReconnectAttempts = 0
                             Log.e(TAG, "⚠️ GATT_CONN_TERMINATE_LOCAL_HOST (status=22) - Reintentos agotados")
-                            // Fallo conocido del cooler: deja de responder al discovery hasta
-                            // que se reinicia el Bluetooth del teléfono
-                            connectionError = "El cooler no responde al conectar.\n" +
-                                "Desactiva y activa el Bluetooth del teléfono y vuelve a intentarlo."
+                            connectionError = "O cooler não respondeu ao conectar.\n" +
+                                "Desligue o cooler da tomada por 5 segundos, certifique-se de que o Goper está fechado, e tente novamente."
                         }
                         
                         // Si estamos en medio de un reintento de discovery, no procesar desconexión
@@ -1032,7 +1036,7 @@ class MainActivity : ComponentActivity() {
                         }
                         
                         if (status != BluetoothGatt.GATT_SUCCESS && status != 22) {
-                            connectionError = "Se perdió la conexión con el cooler.\nVerificá que esté encendido y cerca."
+                            connectionError = "A conexão com o cooler foi perdida.\nVerifique se está ligado e próximo."
                         }
                         statusMessage = "Desconectado"
                         Log.d(TAG, "Desconectado del cooler, status: $status")

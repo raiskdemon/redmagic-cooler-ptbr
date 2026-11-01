@@ -94,7 +94,7 @@ fun HomeScreen(
                         )
                         Text(
                             text = when {
-                                profiles.isEmpty() -> "Sin dispositivos"
+                                profiles.isEmpty() -> "Nenhum dispositivo"
                                 connectedCount > 0 -> "${profiles.size} dispositivo${if (profiles.size != 1) "s" else ""} · $connectedCount conectado${if (connectedCount != 1) "s" else ""}"
                                 else -> "${profiles.size} dispositivo${if (profiles.size != 1) "s" else ""}"
                             },
@@ -275,7 +275,7 @@ private fun ProfileCard(
                             text = when {
                                 connected && profile.isAutoMode -> "Conectado · Auto"
                                 connected -> "Conectado"
-                                profile.isAutoMode -> "Reconectando"
+                                profile.isAutoMode -> "Reconectando..."
                                 else -> "Desconectado"
                             },
                             style = MaterialTheme.typography.labelMedium,
@@ -304,16 +304,16 @@ private fun ProfileCard(
             ) {
                 if (connected) {
                     Text(
-                        text = if (profile.isAutoMode) "Modo automático" else "Velocidad ${profile.fanSpeed}%",
+                        text = if (profile.isAutoMode) "Modo automático" else "Velocidade ${profile.fanSpeed}%",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (profile.signalStrength != 0) {
                         Text(
                             text = when {
-                                profile.signalStrength >= -50 -> "Señal excelente"
-                                profile.signalStrength >= -70 -> "Señal buena"
-                                else -> "Señal regular"
+                                profile.signalStrength >= -50 -> "Sinal excelente"
+                                profile.signalStrength >= -70 -> "Sinal bom"
+                                else -> "Sinal regular"
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -321,7 +321,7 @@ private fun ProfileCard(
                     }
                 } else {
                     Text(
-                        text = "Última conexión: ${profile.lastSeenFormatted}",
+                        text = "Última conexão: ${profile.lastSeenFormatted}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -392,7 +392,7 @@ private fun EmptyStateContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Aún no hay coolers",
+            text = "Nenhum cooler adicionado",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
@@ -401,7 +401,7 @@ private fun EmptyStateContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Añade tu primer cooler RedMagic para controlar la velocidad y la iluminación RGB.",
+            text = "Adicione seu primeiro cooler RedMagic para controlar a velocidade e a iluminação RGB.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -415,13 +415,13 @@ private fun EmptyStateContent(
         ) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Añadir dispositivo")
+            Text("Adicionar dispositivo")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Asegúrate de que el cooler esté encendido y cerca del teléfono.",
+            text = "Certifique-se de que o cooler está ligado e próximo ao celular.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

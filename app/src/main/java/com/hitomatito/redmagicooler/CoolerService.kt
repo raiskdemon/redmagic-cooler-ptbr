@@ -23,6 +23,12 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationCompat
 import com.hitomatito.redmagicooler.model.CoolerBleConstants
 import com.hitomatito.redmagicooler.model.CoolerProfile
@@ -39,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.core.content.edit
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Servicio de primer plano para control automático del cooler
@@ -483,6 +490,23 @@ class CoolerService : Service() {
         }
     }
     
+    private fun createTemperatureIcon(temp: Float): IconCompat {
+        val tempInt = if (temp > 0f) temp.roundToInt() else 0
+        val text = if (tempInt > 0) "$tempInt°" else "--"
+        val size = 72
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            textSize = if (text.length > 3) 30f else 36f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        val y = (size / 2f) - ((paint.descent() + paint.ascent()) / 2f)
+        canvas.drawText(text, size / 2f, y, paint)
+        return IconCompat.createWithBitmap(bitmap)
+    }
+
     private fun createNotification(status: String, speed: Int, temp: Float): Notification {
         val stopIntent = Intent(this, CoolerService::class.java).apply {
             action = ACTION_STOP_AUTO
@@ -506,22 +530,23 @@ class CoolerService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         
-        // Determinar emoji y mensaje según el contexto
+        // Determinar emoji e mensagem conforme o contexto
         val title: String
         val contentText: String
         
-        // Si no está conectado o hay un error
+        // Se não estiver conectado ou houver erro/espera
         if (status.contains("Error") || status.contains("Esperando") || 
             status.contains("Buscando") || status.contains("Conectando") || 
-            status.contains("Desconectado")) {
+            status.contains("Desconectado") || status.contains("Erro") ||
+            status.contains("Aguardando")) {
             title = "Modo Automático"
             contentText = status
         } else {
-            // Conectado y funcionando
+            // Conectado e funcionando
             val statusEmoji = when (status) {
-                "Critico" -> "🔴"
-                "Caliente" -> "🟠"
-                "Tibio" -> "🟡"
+                "Critico", "Crítico" -> "🔴"
+                "Caliente", "Quente" -> "🟠"
+                "Tibio", "Morno" -> "🟡"
                 "Normal" -> "🟢"
                 else -> "🟢"
             }
@@ -529,20 +554,20 @@ class CoolerService : Service() {
             title = "$statusEmoji ${"%.1f".format(temp)}°C • Modo Auto"
             
             contentText = if (speed > 0) {
-                "Enfriando $speed% • $status"
+                "Resfriando $speed% • $status"
             } else {
-                "En reposo • Temp. $status"
+                "Em repouso • Temp. $status"
             }
         }
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(createTemperatureIcon(temp))
             .setOngoing(true)
             .setShowWhen(false)
-            .setOnlyAlertOnce(true) // Solo alertar una vez, updates silenciosos
-            .setSilent(true) // Silenciosa para ahorrar recursos
+            .setOnlyAlertOnce(true) // Atualizações silenciosas
+            .setSilent(true)
             .setContentIntent(openPendingIntent)
             .addAction(
                 android.R.drawable.ic_input_get,
@@ -551,12 +576,11 @@ class CoolerService : Service() {
             )
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
-                "Detener",
+                "Parar",
                 stopPendingIntent
             )
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setPriority(NotificationCompat.PRIORITY_MIN)  // MIN para no mostrar en status bar
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_DEFERRED)  // Diferir mostrar en status bar
+            .setPriority(NotificationCompat.PRIORITY_LOW) // Fixo na barra de status com o número da temperatura
             .build()
     }
     
@@ -736,14 +760,18 @@ class CoolerService : Service() {
                         Log.d(TAG, "Estado del perfil actualizado: Conectado")
                     }
                     
-                    try {
-                        @SuppressLint("MissingPermission")
-                        if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
-                            // BLE sin emparejamiento - el cooler funciona sin bonding
-                            gatt.discoverServices()
+                    serviceScope.launch {
+                        delay(600L)
+                        try {
+                            @SuppressLint("MissingPermission")
+                            if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
+                                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                                BleConnectionHelper.refreshGattCache(gatt, TAG)
+                                gatt.discoverServices()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Erro ao descobrir serviços: ${e.message}")
                         }
-                    } catch (e: SecurityException) {
-                        Log.e(TAG, "Error descubriendo servicios: ${e.message}")
                     }
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {

@@ -56,7 +56,7 @@ fun DeviceTypeSelectorDialog(
             ) {
                 // Título
                 Text(
-                    text = "Seleccionar Tipo de Cooler",
+                    text = "Selecionar Modelo do Cooler",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -65,8 +65,8 @@ fun DeviceTypeSelectorDialog(
                 // Opción para escanear todos los tipos
                 DeviceTypeOption(
                     icon = "Buscar",
-                    title = "Escanear Todos",
-                    description = "Buscar todos los modelos disponibles",
+                    title = "Buscar Todos",
+                    description = "Procurar todos os modelos disponíveis",
                     isSelected = currentSelection == null,
                     onClick = {
                         onDeviceTypeSelected(null)

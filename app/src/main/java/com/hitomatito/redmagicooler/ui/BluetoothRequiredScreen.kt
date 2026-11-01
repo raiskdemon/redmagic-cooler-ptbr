@@ -70,7 +70,7 @@ fun BluetoothRequiredScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Activa el Bluetooth",
+                text = "Ative o Bluetooth",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -79,7 +79,7 @@ fun BluetoothRequiredScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "RedMagic Cooler lo necesita para detectar y controlar tu cooler. No se envía nada a internet.",
+                text = "O RedMagic Cooler precisa do Bluetooth para detectar e controlar o seu cooler. Nada é enviado para a internet.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -97,7 +97,7 @@ fun BluetoothRequiredScreen(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text("Activar Bluetooth")
+                Text("Ativar Bluetooth")
             }
 
             TextButton(onClick = onRetryCheck) {

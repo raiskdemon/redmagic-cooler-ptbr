@@ -101,12 +101,12 @@ fun RGBControlScreen(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Iluminación RGB",
+                            text = "Iluminação RGB",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = if (isEffectivelyConnected) "Elige un efecto y su color" else "Conecta el cooler para controlar la luz",
+                            text = if (isEffectivelyConnected) "Escolha um efeito e a cor" else "Conecte o cooler para controlar a luz",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -114,7 +114,7 @@ fun RGBControlScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -152,7 +152,7 @@ fun RGBControlScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "El cooler no está conectado. Los cambios no se aplicarán.",
+                            text = "O cooler não está conectado. As alterações não serão aplicadas.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -167,14 +167,14 @@ fun RGBControlScreen(
             )
 
             Text(
-                text = "Efecto",
+                text = "Efeito",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 EffectCard(
-                    title = "Arcoíris",
+                    title = "Arco-íris",
                     subtitle = "Ciclo automático",
                     swatch = rainbowBrush(),
                     selected = selectedEffect == "rainbow",
@@ -186,8 +186,8 @@ fun RGBControlScreen(
                     }
                 )
                 EffectCard(
-                    title = "Multicolor",
-                    subtitle = "Respiración",
+                    title = "Multicolorido",
+                    subtitle = "Respiração",
                     swatch = multiColorBrush(),
                     selected = selectedEffect == "multiBreathing",
                     enabled = isEffectivelyConnected,
@@ -201,8 +201,8 @@ fun RGBControlScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 EffectCard(
-                    title = "Un color",
-                    subtitle = "Respiración",
+                    title = "Cor única",
+                    subtitle = "Respiração",
                     swatch = SolidColor(currentColor),
                     selected = selectedEffect == "singleBreathing",
                     enabled = isEffectivelyConnected,
@@ -213,7 +213,7 @@ fun RGBControlScreen(
                     }
                 )
                 EffectCard(
-                    title = "Fijo",
+                    title = "Estático",
                     subtitle = "Luz constante",
                     swatch = SolidColor(currentColor),
                     selected = selectedEffect == "fixed",
@@ -303,7 +303,7 @@ private fun PreviewCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Vista previa",
+                        text = "Pré-visualização",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -483,7 +483,7 @@ private fun OffEffectCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Apagar",
+                    text = "Desligar",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = if (enabled) {
@@ -493,7 +493,7 @@ private fun OffEffectCard(
                     }
                 )
                 Text(
-                    text = "Sin iluminación",
+                    text = "Sem iluminação",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -572,7 +572,7 @@ private fun ColorSection(
             }
 
             ColorSlider(
-                label = "Rojo",
+                label = "Vermelho",
                 value = red,
                 color = Color(0xFFE53935),
                 enabled = enabled,
@@ -594,7 +594,7 @@ private fun ColorSection(
             )
 
             Text(
-                text = "Colores rápidos",
+                text = "Cores rápidas",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -629,7 +629,7 @@ private fun ColorSection(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Aplicar color")
+                Text("Aplicar cor")
             }
         }
     }
@@ -701,12 +701,12 @@ private fun colorToHex(color: Color): String {
 }
 
 private fun effectLabel(key: String?): String = when (key) {
-    "rainbow" -> "Arcoíris"
-    "multiBreathing" -> "Respiración multicolor"
-    "singleBreathing" -> "Respiración de un color"
-    "fixed" -> "Color fijo"
-    "off" -> "Apagado"
-    else -> "Sin efecto seleccionado"
+    "rainbow" -> "Arco-íris"
+    "multiBreathing" -> "Respiração multicolorida"
+    "singleBreathing" -> "Respiração de cor única"
+    "fixed" -> "Cor estática"
+    "off" -> "Desligado"
+    else -> "Nenhum efeito selecionado"
 }
 
 private fun LightEffect.toEffectKey(): String = when (this) {

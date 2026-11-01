@@ -112,9 +112,9 @@ fun ProfileConfigScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar perfil") },
+            title = { Text("Excluir perfil") },
             text = { 
-                Text("¿Estás seguro de que deseas eliminar el perfil '${profile.displayName}'? Esta acción no se puede deshacer.") 
+                Text("Tem certeza de que deseja excluir o perfil '${profile.displayName}'? Esta ação não pode ser desfeita.") 
             },
             confirmButton = {
                 Button(
@@ -126,7 +126,7 @@ fun ProfileConfigScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Eliminar")
+                    Text("Excluir")
                 }
             },
             dismissButton = {
@@ -141,12 +141,12 @@ fun ProfileConfigScreen(
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Renombrar perfil") },
+            title = { Text("Renomear perfil") },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Nombre del perfil") },
+                    label = { Text("Nome do perfil") },
                     singleLine = true
                 )
             },
@@ -159,7 +159,7 @@ fun ProfileConfigScreen(
                         }
                     }
                 ) {
-                    Text("Guardar")
+                    Text("Salvar")
                 }
             },
             dismissButton = {
@@ -185,17 +185,17 @@ fun ProfileConfigScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar")
                     }
                 },
                 actions = {
                     IconButton(onClick = { showRenameDialog = true }) {
-                        Icon(Icons.Filled.Edit, "Renombrar")
+                        Icon(Icons.Filled.Edit, "Renomear")
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             Icons.Filled.Delete, 
-                            "Eliminar",
+                            "Excluir",
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
@@ -336,7 +336,7 @@ private fun ProfileHeroCard(
                     Text(
                         text = when {
                             isInAutoMode && connected -> "Modo automático"
-                            isInAutoMode -> "Modo automático · reconectando"
+                            isInAutoMode -> "Modo automático · reconectando..."
                             connected -> "Conectado"
                             else -> "Desconectado"
                         },
@@ -344,7 +344,7 @@ private fun ProfileHeroCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = if (isInAutoMode) "Servicio en segundo plano" else profile.macAddress,
+                        text = if (isInAutoMode) "Serviço em segundo plano" else profile.macAddress,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -453,12 +453,12 @@ private fun RgbCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Iluminación RGB",
+                    text = "Iluminação RGB",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = rgb?.let { effectName(it.effect) } ?: "Sin configurar",
+                    text = rgb?.let { effectName(it.effect) } ?: "Não configurado",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -485,8 +485,8 @@ private fun ThermalCard(
 
     val levelLabel = when (thermalData.tempLevel) {
         ThermalMonitor.TempLevel.SAFE -> "Normal"
-        ThermalMonitor.TempLevel.WARM -> "Templado"
-        ThermalMonitor.TempLevel.HOT -> "Alta"
+        ThermalMonitor.TempLevel.WARM -> "Morno"
+        ThermalMonitor.TempLevel.HOT -> "Quente"
         ThermalMonitor.TempLevel.CRITICAL -> "Crítica"
     }
 
@@ -581,7 +581,7 @@ private fun ThermalCard(
                     }
                 } else {
                     Text(
-                        text = "Sin datos",
+                        text = "Sem dados",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -594,7 +594,7 @@ private fun ThermalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Velocidad sugerida",
+                    text = "Velocidade sugerida",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -607,7 +607,7 @@ private fun ThermalCard(
 
             if (isAutoMode) {
                 Text(
-                    text = "El servicio ajusta la velocidad automáticamente",
+                    text = "O serviço ajusta a velocidade automaticamente",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -644,15 +644,15 @@ private fun SpeedControlCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Velocidad",
+                        text = "Velocidade",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = if (isAutoMode) {
-                            "Desactivado en modo automático"
+                            "Desativado no modo automático"
                         } else {
-                            "Desliza para ajustar"
+                            "Arraste para ajustar"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -733,7 +733,7 @@ private fun ProfileInfoCard(profile: CoolerProfile) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Información",
+                text = "Informações",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -741,22 +741,22 @@ private fun ProfileInfoCard(profile: CoolerProfile) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             InfoRow("Dispositivo", profile.deviceType.deviceName)
-            InfoRow("Generación", "Gen ${profile.deviceType.generation}")
-            InfoRow("Dirección MAC", profile.macAddress)
-            InfoRow("Última conexión", profile.lastSeenFormatted)
+            InfoRow("Geração", "Gen ${profile.deviceType.generation}")
+            InfoRow("Endereço MAC", profile.macAddress)
+            InfoRow("Última conexão", profile.lastSeenFormatted)
 
             profile.rgbConfig?.let { rgb ->
-                InfoRow("Efecto RGB", effectName(rgb.effect))
+                InfoRow("Efeito RGB", effectName(rgb.effect))
             }
         }
     }
 }
 
 private fun effectName(effect: LightEffect): String = when (effect) {
-    LightEffect.COLORFUL -> "Multicolor"
-    LightEffect.BREATH_FULLCOLOR -> "Respiración multicolor"
-    LightEffect.BREATH_SINGLE -> "Respiración de un color"
-    LightEffect.ALWAYS_BRIGHT -> "Color fijo"
+    LightEffect.COLORFUL -> "Arco-íris"
+    LightEffect.BREATH_FULLCOLOR -> "Respiração multicolorida"
+    LightEffect.BREATH_SINGLE -> "Respiração de cor única"
+    LightEffect.ALWAYS_BRIGHT -> "Cor estática"
 }
 
 @Composable

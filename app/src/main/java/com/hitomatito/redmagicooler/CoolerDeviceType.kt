@@ -17,7 +17,7 @@ enum class CoolerDeviceType(
         deviceName = "Enfriador Doble Núcleo",
         advertisingUUID = UUID.fromString("70e03463-0478-4596-a826-e0002d27618a"),
         generation = 1,
-        description = "Primera generación de enfriadores RedMagic",
+        description = "Primeira geração de coolers RedMagic",
         imageRes = R.drawable.cooler_dual_core
     ),
     
@@ -25,7 +25,7 @@ enum class CoolerDeviceType(
         deviceName = "Enfriador Turbo",
         advertisingUUID = UUID.fromString("3823dac1-f7be-4a11-a145-83b2b2f35e5e"),
         generation = 2,
-        description = "Segunda generación con mejoras de rendimiento",
+        description = "Segunda geração com melhorias de desempenho",
         imageRes = R.drawable.cooler_turbo
     ),
     
@@ -33,7 +33,7 @@ enum class CoolerDeviceType(
         deviceName = "Magcooler",
         advertisingUUID = UUID.fromString("85e1fd9d-7ca1-4be3-8131-1edde011a47d"),
         generation = 3,
-        description = "Tercera generación con diseño optimizado",
+        description = "Terceira geração com design otimizado",
         imageRes = R.drawable.cooler_magcooler
     ),
     
@@ -41,7 +41,7 @@ enum class CoolerDeviceType(
         deviceName = "Heat Sink 4 Pro",
         advertisingUUID = UUID.fromString("1e3f2686-e85f-4c25-8dd3-ff6164d46a16"),
         generation = 4,
-        description = "Cuarta generación profesional",
+        description = "Quarta geração profissional",
         imageRes = R.drawable.cooler_heat_sink_4_pro
     ),
     
@@ -49,7 +49,7 @@ enum class CoolerDeviceType(
         deviceName = "Heat Sink 5 Pro",
         advertisingUUID = UUID.fromString("b739be84-9cca-44ed-8653-4e4c7f16a9a4"),
         generation = 5,
-        description = "Quinta generación con control RGB avanzado",
+        description = "Quinta geração com controle RGB avançado",
         imageRes = R.drawable.cooler_heat_sink_5_pro
     ),
     
@@ -57,7 +57,7 @@ enum class CoolerDeviceType(
         deviceName = "Heat Sink 5",
         advertisingUUID = UUID.fromString("a8f345b9-d726-4707-910a-fd637c2b00a7"),
         generation = 5,
-        description = "Quinta generación, versión estándar",
+        description = "Quinta geração, versão padrão",
         imageRes = R.drawable.cooler_heat_sink_5
     ),
     
@@ -65,7 +65,7 @@ enum class CoolerDeviceType(
         deviceName = "Heat Sink 6",
         advertisingUUID = UUID.fromString("e39bc7af-ca69-4977-9fe7-ae3ad560f063"),
         generation = 6,
-        description = "Sexta generación con eficiencia mejorada",
+        description = "Sexta geração com eficiência melhorada",
         imageRes = R.drawable.cooler_heat_sink_6
     ),
     
@@ -73,7 +73,7 @@ enum class CoolerDeviceType(
         deviceName = "Heat Sink 6 Pro",
         advertisingUUID = UUID.fromString("9c24a801-7666-40c1-9589-26a89425a0b0"),
         generation = 6,
-        description = "Versión profesional de sexta generación",
+        description = "Versão profissional de sexta geração",
         imageRes = R.drawable.cooler_heat_sink_6_pro
     );
 

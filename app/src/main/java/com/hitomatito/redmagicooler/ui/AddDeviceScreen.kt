@@ -87,12 +87,12 @@ fun AddDeviceScreen(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Añadir dispositivo",
+                            text = "Adicionar dispositivo",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Selecciona tu modelo de cooler",
+                            text = "Selecione o modelo do seu cooler",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -100,7 +100,7 @@ fun AddDeviceScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -146,12 +146,12 @@ fun AddDeviceScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "¿Qué modelo tienes?",
+                            text = "Qual é o seu modelo?",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Enciende el cooler y mantenlo cerca del teléfono antes de elegir.",
+                            text = "Ligue o cooler e mantenha-o próximo ao celular antes de escolher.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -206,7 +206,7 @@ private fun ScanningStateCard(
             )
 
             Text(
-                text = if (isScanning) "Buscando tu cooler…" else "Conectando…",
+                text = if (isScanning) "Procurando seu cooler…" else "Conectando…",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -220,7 +220,7 @@ private fun ScanningStateCard(
             )
 
             TextButton(onClick = onCancel) {
-                Text("Cancelar búsqueda")
+                Text("Cancelar busca")
             }
         }
     }
@@ -299,7 +299,7 @@ private fun DeviceTypeCard(
                     color = MaterialTheme.colorScheme.surfaceContainerHighest
                 ) {
                     Text(
-                        text = "Generación ${deviceType.generation}",
+                        text = "Geração ${deviceType.generation}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -322,10 +322,10 @@ private fun DeviceTypeCard(
 @Composable
 private fun HelpCard() {
     val tips = listOf(
-        "Enciende el cooler antes de buscarlo",
-        "Mantenlo a menos de 2 metros del teléfono",
-        "Si no aparece, apágalo y vuelve a encenderlo",
-        "Comprueba que el Bluetooth esté activado"
+        "Ligue o cooler antes de buscar",
+        "Mantenha a menos de 2 metros do celular",
+        "Se não aparecer, desligue da tomada por 5 segundos e ligue novamente",
+        "Verifique se o Bluetooth está ativado"
     )
 
     Card(
@@ -339,7 +339,7 @@ private fun HelpCard() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Antes de empezar",
+                text = "Antes de começar",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
