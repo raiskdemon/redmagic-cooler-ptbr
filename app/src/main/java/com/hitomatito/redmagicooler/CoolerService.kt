@@ -761,15 +761,28 @@ class CoolerService : Service() {
                     }
                     
                     serviceScope.launch {
-                        // Aguardar 1200ms para estabilização dos parâmetros de conexão (7.5ms e 30ms)
-                        delay(1200L)
+                        delay(600L)
                         try {
                             @SuppressLint("MissingPermission")
                             if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
-                                gatt.discoverServices()
+                                Log.d(TAG, "Solicitando MTU 512...")
+                                gatt.requestMtu(512)
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Erro ao descobrir serviços: ${e.message}")
+                            Log.e(TAG, "Erro ao solicitar MTU: ${e.message}")
+                            gatt.discoverServices()
+                        }
+                        
+                        delay(1200L)
+                        if (isConnected && fanCharacteristic == null) {
+                            try {
+                                @SuppressLint("MissingPermission")
+                                if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
+                                    gatt.discoverServices()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Erro no fallback de discoverServices: ${e.message}")
+                            }
                         }
                     }
                 }
@@ -846,6 +859,21 @@ class CoolerService : Service() {
             }
         }
         
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            Log.d(TAG, "onMtuChanged: mtu=$mtu, status=$status")
+            serviceScope.launch {
+                delay(200L)
+                try {
+                    @SuppressLint("MissingPermission")
+                    if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService) && isConnected) {
+                        gatt.discoverServices()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao descobrir serviços após MTU: ${e.message}")
+                }
+            }
+        }
+
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Servicios descubiertos exitosamente")

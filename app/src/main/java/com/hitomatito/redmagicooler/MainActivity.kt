@@ -1051,9 +1051,9 @@ class MainActivity : ComponentActivity() {
                             return@runOnUiThread
                         }
 
-                        // Delay de 1200ms para aguardar os dois updates de parâmetros de conexão (7.5ms e 30ms) do cooler
+                        // Negociar MTU 512 primeiro (exatamente como o Goper da Nubia: onGattConnected: requestMtu=512)
                         monitoringScope.launch {
-                            delay(1200L)
+                            delay(600L)
                             if (isFinishing || isDestroyed || !isConnected) return@launch
                             
                             val bondState = try {
@@ -1063,8 +1063,8 @@ class MainActivity : ComponentActivity() {
                             }
                             Log.d(TAG, "bondState atual do dispositivo: $bondState")
                             
-                            runOnUiThread {
-                                if (bondState == BluetoothDevice.BOND_BONDING) {
+                            if (bondState == BluetoothDevice.BOND_BONDING) {
+                                runOnUiThread {
                                     statusMessage = "Por favor, confirme o pareamento no celular..."
                                     Log.d(TAG, "Pareamento detectado. Aguardando confirmação do usuário...")
                                     
@@ -1078,10 +1078,33 @@ class MainActivity : ComponentActivity() {
                                             handleDiscoverServicesTimeout()
                                         }
                                     }
-                                    return@runOnUiThread
                                 }
-                                
-                                startServiceDiscovery()
+                                return@launch
+                            }
+                            
+                            runOnUiThread {
+                                statusMessage = "Negociando conexão com o cooler..."
+                            }
+                            
+                            try {
+                                @SuppressLint("MissingPermission")
+                                if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
+                                    Log.d(TAG, "Solicitando MTU 512...")
+                                    gatt.requestMtu(512)
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Erro ao solicitar MTU: ${e.message}")
+                                runOnUiThread { startServiceDiscovery() }
+                            }
+                            
+                            // Fallback caso onMtuChanged demore ou não dispare
+                            delay(1200L)
+                            if (isFinishing || isDestroyed || !isConnected || isDiscoveryInProgress) return@launch
+                            runOnUiThread {
+                                if (!isDiscoveryInProgress && fanCharacteristic == null) {
+                                    Log.d(TAG, "Iniciando discoverServices via fallback de MTU...")
+                                    startServiceDiscovery()
+                                }
                             }
                         }
                     }
@@ -1174,6 +1197,16 @@ class MainActivity : ComponentActivity() {
                             thermalMonitor.stopMonitoring()
                         }
                     }
+                }
+            }
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            Log.d(TAG, "onMtuChanged: mtu=$mtu, status=$status")
+            if (isFinishing || isDestroyed || !isConnected) return
+            runOnUiThread {
+                if (!isDiscoveryInProgress && fanCharacteristic == null) {
+                    startServiceDiscovery()
                 }
             }
         }
