@@ -761,12 +761,10 @@ class CoolerService : Service() {
                     }
                     
                     serviceScope.launch {
-                        delay(600L)
+                        delay(300L)
                         try {
                             @SuppressLint("MissingPermission")
                             if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
-                                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
-                                BleConnectionHelper.refreshGattCache(gatt, TAG)
                                 gatt.discoverServices()
                             }
                         } catch (e: Exception) {
@@ -914,6 +912,11 @@ class CoolerService : Service() {
                 }
                 
                 if (fanCharacteristic != null) {
+                    try {
+                        gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Erro ao definir prioridade alta: ${e.message}")
+                    }
                     Log.d(TAG, "Fan characteristic encontrada: ${CoolerBleConstants.FAN_SPEED_CHARACTERISTIC_UUID}")
                     if (lightCharacteristic != null) {
                         Log.d(TAG, "Light characteristic encontrada: ${CoolerBleConstants.LIGHT_CONTROL_UUID}")
