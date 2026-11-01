@@ -1305,7 +1305,7 @@ class MainActivity : ComponentActivity() {
     private fun handleSuccessfulConnection() {
         val mac = pendingDeviceMac ?: bluetoothGatt?.device?.address ?: return
         val existingProfile = profileRepository.getProfileByMac(mac)
-        val deviceType = pendingNewDeviceType ?: existingProfile?.deviceType ?: CoolerDeviceType.REDMAGIC_5_PRO
+        val deviceType = pendingNewDeviceType ?: existingProfile?.deviceType ?: CoolerDeviceType.JACKET_5
         
         // Verificar si ya existe un perfil con esta MAC
         // Perfil existente verificado acima
