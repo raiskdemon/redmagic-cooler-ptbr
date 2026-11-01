@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
@@ -14,7 +15,11 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import java.util.UUID
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -128,6 +133,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val bondStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
+                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                }
+                val bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
+                val prevBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.BOND_NONE)
+                Log.d(TAG, "BondState mudou para ${device?.address}: $prevBondState -> $bondState")
+                
+                val currentDeviceAddress = bluetoothGatt?.device?.address
+                if (device != null && currentDeviceAddress != null && device.address.equals(currentDeviceAddress, ignoreCase = true)) {
+                    when (bondState) {
+                        BluetoothDevice.BOND_BONDING -> {
+                            runOnUiThread {
+                                statusMessage = "Por favor, confirme o pareamento no celular..."
+                                Log.d(TAG, "Pareamento em andamento. Aguardando confirmação do usuário...")
+                            }
+                        }
+                        BluetoothDevice.BOND_BONDED -> {
+                            runOnUiThread {
+                                statusMessage = "Pareado! Descobrindo serviços..."
+                                Log.d(TAG, "Dispositivo pareado com sucesso. Iniciando discoverServices()")
+                                discoveryTimeoutJob?.cancel()
+                                discoveryTimeoutJob = null
+                                
+                                monitoringScope.launch {
+                                    delay(500L)
+                                    if (isFinishing || isDestroyed || !isConnected) return@launch
+                                    runOnUiThread {
+                                        startServiceDiscovery()
+                                    }
+                                }
+                            }
+                        }
+                        BluetoothDevice.BOND_NONE -> {
+                            Log.w(TAG, "Pareamento cancelado ou removido (BOND_NONE)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         @Suppress("DEPRECATION")
@@ -234,6 +286,10 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar monitor térmico
         thermalMonitor = ThermalMonitor(this)
+
+        // Registrar receptor de estado de pareamento Bluetooth
+        val bondFilter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        registerReceiver(bondStateReceiver, bondFilter)
 
         setContent {
             RedmagiCoolerTheme {
@@ -817,12 +873,31 @@ class MainActivity : ComponentActivity() {
                 if (!BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
                     return
                 }
-                @SuppressLint("MissingPermission")
-                gatt.setCharacteristicNotification(fanCharacteristic, true)
-                @SuppressLint("MissingPermission")
-                gatt.readCharacteristic(fanCharacteristic)
+                
+                // Habilitar notificações de temperatura na característica 0x1015
+                val notifChar = fanService?.getCharacteristic(CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID)
+                if (notifChar != null) {
+                    @SuppressLint("MissingPermission")
+                    gatt.setCharacteristicNotification(notifChar, true)
+                    val descriptor = notifChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                    if (descriptor != null) {
+                        @Suppress("DEPRECATION")
+                        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        @SuppressLint("MissingPermission")
+                        gatt.writeDescriptor(descriptor)
+                        Log.d(TAG, "Notificações de temperatura habilitadas em 0x1015")
+                    }
+                }
+                
+                // Ler velocidade apenas se a característica suportar leitura (evita erro de ATT)
+                fanCharacteristic?.let { fc ->
+                    if (fc.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0) {
+                        @SuppressLint("MissingPermission")
+                        gatt.readCharacteristic(fc)
+                    }
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error habilitando notificaciones: ${e.message}")
+                Log.e(TAG, "Erro configurando características: ${e.message}")
             }
         } else {
             if (services.isEmpty()) {
@@ -896,6 +971,62 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startServiceDiscovery() {
+        val gatt = bluetoothGatt ?: return
+        isDiscoveryInProgress = true
+        statusMessage = "Descobrindo serviços..."
+        
+        try {
+            @SuppressLint("MissingPermission")
+            if (BlePermissionManager.hasBluetoothConnectPermission(this)) {
+                // Se os serviços já estiverem disponíveis no cache, processar imediatamente
+                val cachedServices = gatt.services
+                if (cachedServices != null && cachedServices.isNotEmpty()) {
+                    Log.d(TAG, "Serviços disponíveis a partir do cache BLE (${cachedServices.size})")
+                    isDiscoveryInProgress = false
+                    processDiscoveredServices(gatt, cachedServices)
+                    return
+                }
+                
+                Log.d(TAG, "Iniciando descoberta de serviços...")
+                val started = gatt.discoverServices()
+                if (!started) {
+                    Log.e(TAG, "discoverServices() retornou false")
+                    isDiscoveryInProgress = false
+                    handleDiscoverServicesTimeout()
+                    return
+                }
+                
+                // Timeout watchdog: se discoverServices não responder em 20s, tratar timeout
+                discoveryTimeoutJob?.cancel()
+                discoveryTimeoutJob = monitoringScope.launch {
+                    delay(20000L)
+                    if (isFinishing || isDestroyed || !isDiscoveryInProgress) return@launch
+                    runOnUiThread {
+                        Log.w(TAG, "⚠️ discoverServices() timeout - sem resposta em 20s")
+                        statusMessage = "Tempo de espera esgotado, tentando novamente..."
+                        isDiscoveryInProgress = false
+                        isDiscoveryTimedOut = true
+                        try {
+                            @SuppressLint("MissingPermission")
+                            if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
+                                bluetoothGatt?.disconnect()
+                            }
+                        } catch (e: SecurityException) {
+                            Log.e(TAG, "SecurityException ao desconectar por timeout: ${e.message}")
+                            isDiscoveryTimedOut = false
+                            handleDiscoverServicesTimeout()
+                        }
+                    }
+                }
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException ao descobrir serviços: ${e.message}")
+            isDiscoveryInProgress = false
+            statusMessage = "Permissão necessária para descobrir serviços"
+        }
+    }
+
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             if (isFinishing || isDestroyed) {
@@ -911,7 +1042,7 @@ class MainActivity : ComponentActivity() {
                         connectionError = null
                         discoveryRetryCount = 0
                         scanTargetMac = null
-                        statusMessage = "Conectado, buscando serviços..."
+                        statusMessage = "Conectado, verificando pareamento..."
                         Log.d(TAG, "Conectado ao cooler com sucesso")
                         Log.d(TAG, "   Device: ${gatt.device.address}")
                         Log.d(TAG, "   Status: $status")
@@ -920,63 +1051,37 @@ class MainActivity : ComponentActivity() {
                             return@runOnUiThread
                         }
 
-                        // Delay de 300ms para estabilização da conexão BLE
+                        // Delay de 500ms para o stack Bluetooth estabilizar ou disparar requisição de pareamento
                         monitoringScope.launch {
-                            delay(300L)
+                            delay(500L)
                             if (isFinishing || isDestroyed || !isConnected) return@launch
                             
+                            val bondState = try {
+                                gatt.device.bondState
+                            } catch (e: SecurityException) {
+                                BluetoothDevice.BOND_NONE
+                            }
+                            Log.d(TAG, "bondState atual do dispositivo: $bondState")
+                            
                             runOnUiThread {
-                                isDiscoveryInProgress = true
-                                statusMessage = "Descobrindo serviços..."
-                                try {
-                                    @SuppressLint("MissingPermission")
-                                    if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
-                                        // Se os serviços já estiverem disponíveis no cache, processar imediatamente
-                                        val cachedServices = gatt.services
-                                        if (cachedServices != null && cachedServices.isNotEmpty()) {
-                                            Log.d(TAG, "Serviços disponíveis a partir do cache BLE (${cachedServices.size})")
-                                            isDiscoveryInProgress = false
-                                            processDiscoveredServices(gatt, cachedServices)
-                                            return@runOnUiThread
-                                        }
-                                        
-                                        Log.d(TAG, "Iniciando descoberta de serviços...")
-                                        val started = gatt.discoverServices()
-                                        if (!started) {
-                                            Log.e(TAG, "discoverServices() retornou false")
-                                            isDiscoveryInProgress = false
+                                if (bondState == BluetoothDevice.BOND_BONDING) {
+                                    statusMessage = "Por favor, confirme o pareamento no celular..."
+                                    Log.d(TAG, "Pareamento detectado. Aguardando confirmação do usuário...")
+                                    
+                                    // Watchdog de pareamento longo (45s) para dar tempo de o usuário confirmar na tela
+                                    discoveryTimeoutJob?.cancel()
+                                    discoveryTimeoutJob = monitoringScope.launch {
+                                        delay(45000L)
+                                        if (isFinishing || isDestroyed || !isConnected) return@launch
+                                        runOnUiThread {
+                                            Log.w(TAG, "Tempo esgotado aguardando confirmação de pareamento")
                                             handleDiscoverServicesTimeout()
-                                            return@runOnUiThread
-                                        }
-                                        
-                                        // Timeout watchdog: se discoverServices não responder em 12s, tratar timeout
-                                        discoveryTimeoutJob?.cancel()
-                                        discoveryTimeoutJob = monitoringScope.launch {
-                                            delay(12000L)
-                                            if (isFinishing || isDestroyed || !isDiscoveryInProgress) return@launch
-                                            runOnUiThread {
-                                                Log.w(TAG, "⚠️ discoverServices() timeout - sem resposta em 12s")
-                                                statusMessage = "Tempo de espera esgotado, tentando novamente..."
-                                                isDiscoveryInProgress = false
-                                                isDiscoveryTimedOut = true
-                                                try {
-                                                    @SuppressLint("MissingPermission")
-                                                    if (BlePermissionManager.hasBluetoothConnectPermission(this@MainActivity)) {
-                                                        bluetoothGatt?.disconnect()
-                                                    }
-                                                } catch (e: SecurityException) {
-                                                    Log.e(TAG, "SecurityException ao desconectar por timeout: ${e.message}")
-                                                    isDiscoveryTimedOut = false
-                                                    handleDiscoverServicesTimeout()
-                                                }
-                                            }
                                         }
                                     }
-                                } catch (e: SecurityException) {
-                                    Log.e(TAG, "SecurityException ao descobrir serviços: ${e.message}")
-                                    isDiscoveryInProgress = false
-                                    statusMessage = "Permissão necessária para descobrir serviços"
+                                    return@runOnUiThread
                                 }
+                                
+                                startServiceDiscovery()
                             }
                         }
                     }
@@ -1242,6 +1347,12 @@ class MainActivity : ComponentActivity() {
             }
             
             thermalMonitor.stopMonitoring()
+            
+            try {
+                unregisterReceiver(bondStateReceiver)
+            } catch (e: Exception) {
+                Log.w(TAG, "Erro desregistrando bondStateReceiver: ${e.message}")
+            }
             
             // Desconectar todos los perfiles
             profileRepository.disconnectAllProfiles()
