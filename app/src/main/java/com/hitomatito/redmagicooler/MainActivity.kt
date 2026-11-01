@@ -476,6 +476,8 @@ class MainActivity : ComponentActivity() {
             
             isConnecting = true
             statusMessage = "Conectando a ${deviceType.deviceName}..."
+            pendingNewDeviceType = deviceType
+            pendingDeviceMac = macAddress
             
             val device = bluetoothAdapter.getRemoteDevice(macAddress)
             
@@ -674,7 +676,8 @@ class MainActivity : ComponentActivity() {
                               deviceName.contains("Nubia", ignoreCase = true) ||
                               deviceName.contains("PA5115", ignoreCase = true)
             
-            if (isNameMatch || hasCoolerServiceUuid || hasNubiaManufacturerData) {
+            val isTargetMacMatch = targetMac != null && device.address.equals(targetMac, ignoreCase = true)
+            if (isTargetMacMatch || isNameMatch || hasCoolerServiceUuid || hasNubiaManufacturerData) {
                 if (!isScanning) {
                     Log.d(TAG, "Ignorando scan result duplicado - ja conectando")
                     return
@@ -1301,14 +1304,16 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleSuccessfulConnection() {
         val mac = pendingDeviceMac ?: bluetoothGatt?.device?.address ?: return
-        val deviceType = pendingNewDeviceType ?: return
+        val existingProfile = profileRepository.getProfileByMac(mac)
+        val deviceType = pendingNewDeviceType ?: existingProfile?.deviceType ?: CoolerDeviceType.REDMAGIC_5_PRO
         
         // Verificar si ya existe un perfil con esta MAC
-        val existingProfile = profileRepository.getProfileByMac(mac)
+        // Perfil existente verificado acima
         
         if (existingProfile != null) {
             // Actualizar perfil existente
             currentConnectedProfileId = existingProfile.id
+            newlyCreatedProfileId = existingProfile.id
             profileRepository.updateConnectionState(existingProfile.id, true, pendingDeviceRssi)
             Log.d(TAG, "Perfil existente actualizado: ${existingProfile.displayName}")
         } else if (pendingConnectionProfileId == null) {
@@ -1327,6 +1332,7 @@ class MainActivity : ComponentActivity() {
         } else {
             // Conexión a perfil existente por ID
             currentConnectedProfileId = pendingConnectionProfileId
+            newlyCreatedProfileId = pendingConnectionProfileId
             profileRepository.updateConnectionState(pendingConnectionProfileId!!, true, pendingDeviceRssi)
         }
         

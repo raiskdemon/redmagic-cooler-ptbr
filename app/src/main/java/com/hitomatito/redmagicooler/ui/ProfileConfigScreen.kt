@@ -97,6 +97,13 @@ fun ProfileConfigScreen(
     var newName by remember { mutableStateOf(profile.name) }
     val scrollState = rememberScrollState()
 
+    // Conectar automaticamente ao abrir a tela de configurações se ainda não estiver conectado
+    LaunchedEffect(profile.id) {
+        if (!profile.isConnected) {
+            onConnect()
+        }
+    }
+
     // Aplicación automática con debounce
     LaunchedEffect(fanSpeed, profile.isConnected, profile.isAutoMode) {
         if (profile.isConnected && !profile.isAutoMode) {
