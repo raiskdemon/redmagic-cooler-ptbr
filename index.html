@@ -634,6 +634,17 @@
       }
     }
 
+    function promiseWithTimeout(promise, ms, errorMsg) {
+      let timer;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(errorMsg)), ms);
+      });
+      return Promise.race([
+        promise.then(res => { clearTimeout(timer); return res; }),
+        timeoutPromise
+      ]);
+    }
+
     async function writeGatt(characteristic, data) {
       if (!characteristic) throw new Error('Característica nula');
       if (characteristic.writeValueWithResponse) {
@@ -692,25 +703,38 @@
         }
 
         log('✓ GATT Conectado com sucesso!');
-        log('Aguardando 700ms para estabilização da conexão BLE...');
-        await new Promise(r => setTimeout(r, 700));
+        log('Aguardando 1.2s para estabilização da conexão BLE...');
+        await new Promise(r => setTimeout(r, 1200));
 
         log('Descobrindo serviços...');
         let service = null;
         try {
-          service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);
+          // Limite de 6 segundos para não travar nos 30s do Android caso o chip esteja em deadlock
+          service = await promiseWithTimeout(
+            gattServer.getPrimaryService(FAN_SERVICE_UUID),
+            6000,
+            'O chip do cooler não respondeu à busca de serviços em 6s.'
+          );
           log('✓ Serviço principal do cooler (0xd52082ad) localizado!');
         } catch (sErr) {
           log(`! Busca direta falhou: ${sErr.message}`);
-          log('Varrendo todos os serviços disponíveis no cooler...');
-          const allServices = await gattServer.getPrimaryServices();
-          log(`Total de serviços encontrados: ${allServices.length}`);
-          for (const s of allServices) {
-            log(` - Serviço: ${s.uuid}`);
-            if (s.uuid.toLowerCase().includes('d52082ad')) {
-              service = s;
-              log(' -> Encontrado serviço correspondente!');
+          log('Varrendo todos os serviços disponíveis...');
+          try {
+            const allServices = await promiseWithTimeout(
+              gattServer.getPrimaryServices(),
+              5000,
+              'Tempo limite na listagem geral'
+            );
+            log(`Total de serviços encontrados: ${allServices.length}`);
+            for (const s of allServices) {
+              log(` - Serviço: ${s.uuid}`);
+              if (s.uuid.toLowerCase().includes('d52082ad')) {
+                service = s;
+                log(' -> Encontrado serviço correspondente!');
+              }
             }
+          } catch (listErr) {
+            log(`! Falha na varredura: ${listErr.message}`);
           }
           if (!service) throw sErr;
         }
@@ -778,13 +802,14 @@
           log('💡 Dica: O aparelho não foi escolhido ou não apareceu.');
           log('-> Marque a caixinha "Mostrar todos os aparelhos Bluetooth" e tente de novo.');
           log('-> Certifique-se de que o cooler está com o cabo USB conectado.');
-        } else if (err.name === 'NetworkError') {
-          log('💡 Dica: Conexão BLE rejeitada ou ocupada.');
-          log('-> IMPORTANTE: Desconecte o cooler do cabo USB por 5 segundos e ligue novamente (reinicia o Bluetooth dele).');
-          log('-> Feche outros apps como o nRF Connect se ainda estiverem abertos.');
         } else if (err.name === 'SecurityError') {
           log('💡 Dica: Permissão negada no Chrome.');
           log('-> Vá em Configurações > Apps > Chrome > Permissões > Dispositivos por perto > Permitir.');
+        } else {
+          log('🚨 CAUSA DO ERRO: O microcontrolador do cooler está travado em sessão anterior!');
+          log('👉 SOLUÇÃO OBRIGATÓRIA:');
+          log('1. Desconecte o cabo USB do cooler da tomada por 5 segundos e ligue de novo.');
+          log('2. Desligue e ligue o Bluetooth do seu celular para limpar a fila travada.');
         }
         setUiConnected(false);
       }
