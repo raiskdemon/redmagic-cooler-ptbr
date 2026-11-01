@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedMagic Cooler - Web Controller</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d26;
+      --primary: #ff2d55;
+      --primary-hover: #e02449;
+      --accent: #00e5ff;
+      --text: #ffffff;
+      --text-muted: #8b949e;
+      --success: #00e676;
+      --border: #2d3342;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+    }
+    .header {
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #252a37;
+      color: var(--text-muted);
+    }
+    .status-badge.connected {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--success);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+    .btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:active {
+      transform: scale(0.98);
+      background: var(--primary-hover);
+    }
+    .btn.btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+    .btn.btn-outline:active {
+      background: #252a37;
+      color: white;
+    }
+    .slider-group {
+      margin-top: 10px;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .slider-val {
+      color: var(--accent);
+      font-size: 18px;
+    }
+    input[type=range] {
+      width: 100%;
+      height: 8px;
+      border-radius: 5px;
+      background: #2d3342;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 45, 85, 0.5);
+    }
+    .preset-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .preset-btn {
+      background: #252a37;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 10px 0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .preset-btn:active {
+      background: var(--primary);
+    }
+    .rgb-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .log-box {
+      width: 100%;
+      max-width: 480px;
+      background: #090a0f;
+      border: 1px solid #1f2430;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #7ee787;
+      height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>REDMAGIC COOLER</h1>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Web Bluetooth Controller (Sem APK)</p>
+    <div id="statusBadge" class="status-badge">
+      <span class="status-dot"></span>
+      <span id="statusText">Desconectado</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <button id="connectBtn" class="btn" onclick="connectBle()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="m7 7 10 10-5 5V2l5 5L7 17"></path>
+      </svg>
+      Conectar Cooler
+    </button>
+    <button id="disconnectBtn" class="btn btn-outline" style="display: none;" onclick="disconnectBle()">
+      Desconectar
+    </button>
+  </div>
+
+  <div id="controlsSection" class="card disabled">
+    <div class="card-title">Velocidade da Ventoinha</div>
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Potência</span>
+        <span id="speedValueText" class="slider-val">0%</span>
+      </div>
+      <input type="range" id="fanSlider" min="0" max="100" value="0" oninput="onSliderChange(this.value)">
+    </div>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="setSpeed(0)">0%</button>
+      <button class="preset-btn" onclick="setSpeed(35)">35%</button>
+      <button class="preset-btn" onclick="setSpeed(70)">70%</button>
+      <button class="preset-btn" onclick="setSpeed(100)">100%</button>
+    </div>
+  </div>
+
+  <div id="rgbSection" class="card disabled">
+    <div class="card-title">Iluminação RGB</div>
+    <div class="rgb-btns">
+      <button class="preset-btn" onclick="setRgbMode(1)">Arco-íris</button>
+      <button class="preset-btn" onclick="setRgbMode(2)">Respiração</button>
+      <button class="preset-btn" onclick="setRgbColor(255, 0, 0)">Vermelho Fixo</button>
+      <button class="preset-btn" onclick="setRgbColor(0, 229, 255)">Azul Fixo</button>
+    </div>
+  </div>
+
+  <div class="card-title" style="max-width: 480px; width: 100%; margin-bottom: 6px;">Logs em Tempo Real:</div>
+  <div id="logBox" class="log-box">Aguardando conexão...</div>
+
+  <script>
+    const FAN_SERVICE_UUID = 'd52082ad-e805-9f97-9d4e-1c682d9c9ce6';
+    const FAN_SPEED_UUID = '00001012-0000-1000-8000-00805f9b34fb';
+    const FAN_LIGHT_UUID = '00001013-0000-1000-8000-00805f9b34fb';
+    const FAN_TEMP_UUID = '00001015-0000-1000-8000-00805f9b34fb';
+
+    let bleDevice = null;
+    let gattServer = null;
+    let fanChar = null;
+    let lightChar = null;
+
+    function log(msg) {
+      const box = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      box.textContent += `[${time}] ${msg}\n`;
+      box.scrollTop = box.scrollHeight;
+      console.log(`[${time}] ${msg}`);
+    }
+
+    function setUiConnected(connected, name = '') {
+      const badge = document.getElementById('statusBadge');
+      const text = document.getElementById('statusText');
+      const connBtn = document.getElementById('connectBtn');
+      const disconnBtn = document.getElementById('disconnectBtn');
+      const controls = document.getElementById('controlsSection');
+      const rgb = document.getElementById('rgbSection');
+
+      if (connected) {
+        badge.classList.add('connected');
+        text.textContent = `Conectado: ${name}`;
+        connBtn.style.display = 'none';
+        disconnBtn.style.display = 'flex';
+        controls.classList.remove('disabled');
+        rgb.classList.remove('disabled');
+      } else {
+        badge.classList.remove('connected');
+        text.textContent = 'Desconectado';
+        connBtn.style.display = 'flex';
+        disconnBtn.style.display = 'none';
+        controls.classList.add('disabled');
+        rgb.classList.add('disabled');
+      }
+    }
+
+    async function connectBle() {
+      if (!navigator.bluetooth) {
+        alert('Seu navegador não suporta Web Bluetooth! Use o Google Chrome no celular.');
+        log('ERRO: navigator.bluetooth não está disponível.');
+        return;
+      }
+
+      try {
+        log('Solicitando dispositivo Bluetooth...');
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [
+            { namePrefix: 'RM ' },
+            { namePrefix: 'RedMagic' },
+            { namePrefix: 'Cooler' },
+            { namePrefix: 'PA5115' }
+          ],
+          optionalServices: [
+            FAN_SERVICE_UUID,
+            '0000ae00-0000-1000-8000-00805f9b34fb',
+            '00004a40-0000-1000-8000-00805f9b34fb',
+            '00004a41-0000-1000-8000-00805f9b34fb'
+          ]
+        });
+
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        log(`Dispositivo selecionado: ${bleDevice.name} (${bleDevice.id})`);
+        log('Conectando ao GATT Server...');
+
+        gattServer = await bleDevice.gatt.connect();
+        log('GATT Conectado com sucesso!');
+
+        log('Descobrindo serviços primários...');
+        const service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);
+        log(`Serviço ${FAN_SERVICE_UUID} encontrado!`);
+
+        try {
+          fanChar = await service.getCharacteristic(FAN_SPEED_UUID);
+          log('Característica de Fan Speed (0x1012) obtida!');
+        } catch (e) {
+          log(`Aviso ao obter Fan Char: ${e.message}`);
+        }
+
+        try {
+          lightChar = await service.getCharacteristic(FAN_LIGHT_UUID);
+          log('Característica de Luz RGB (0x1013) obtida!');
+        } catch (e) {
+          log(`Aviso ao obter Light Char: ${e.message}`);
+        }
+
+        try {
+          const tempChar = await service.getCharacteristic(FAN_TEMP_UUID);
+          await tempChar.startNotifications();
+          tempChar.addEventListener('characteristicvaluechanged', (e) => {
+            const val = e.target.value;
+            log(`Notificação Temp: ${val.getUint8(0)}°C`);
+          });
+          log('Notificações de temperatura habilitadas (0x1015)!');
+        } catch (e) {
+          log(`Info: Temp char 0x1015: ${e.message}`);
+        }
+
+        setUiConnected(true, bleDevice.name);
+      } catch (err) {
+        log(`FALHA NA CONEXÃO: ${err.message}`);
+        setUiConnected(false);
+      }
+    }
+
+    function onDisconnected() {
+      log('Dispositivo foi desconectado.');
+      setUiConnected(false);
+    }
+
+    function disconnectBle() {
+      if (bleDevice && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+      }
+      setUiConnected(false);
+    }
+
+    function percentToRaw(p) {
+      if (p <= 0) return 0;
+      return Math.round(40 + (200 - 40) * (p / 100));
+    }
+
+    async function setSpeed(percent) {
+      document.getElementById('fanSlider').value = percent;
+      document.getElementById('speedValueText').textContent = percent + '%';
+      if (!fanChar) {
+        log('Erro: característica de velocidade não está pronta.');
+        return;
+      }
+      const raw = percentToRaw(percent);
+      try {
+        log(`Enviando velocidade: ${percent}% (raw=${raw})...`);
+        const data = new Uint8Array([raw]);
+        await fanChar.writeValue(data);
+        log(`Velocidade aplicada: ${percent}% com sucesso!`);
+      } catch (e) {
+        log(`Erro ao escrever velocidade: ${e.message}`);
+      }
+    }
+
+    let sliderTimeout = null;
+    function onSliderChange(val) {
+      document.getElementById('speedValueText').textContent = val + '%';
+      clearTimeout(sliderTimeout);
+      sliderTimeout = setTimeout(() => {
+        setSpeed(parseInt(val));
+      }, 150);
+    }
+
+    async function setRgbMode(mode) {
+      if (!lightChar) return;
+      try {
+        log(`Definindo modo RGB: ${mode}...`);
+        const data = new Uint8Array([mode, 255, 255, 255]);
+        await lightChar.writeValue(data);
+        log('Modo RGB aplicado!');
+      } catch (e) {
+        log(`Erro ao alterar RGB: ${e.message}`);
+      }
+    }
+
+    async function setRgbColor(r, g, b) {
+      if (!lightChar) return;
+      try {
+        log(`Definindo cor fixa RGB (${r}, ${g}, ${b})...`);
+        const data = new Uint8Array([4, r, g, b]);
+        await lightChar.writeValue(data);
+        log('Cor RGB aplicada!');
+      } catch (e) {
+        log(`Erro ao alterar cor RGB: ${e.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
