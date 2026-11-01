@@ -521,7 +521,10 @@
     <div>
       <div class="card-title" style="margin-bottom: 6px;">
         <span>Console de Diagnóstico</span>
-        <button class="log-btn" onclick="clearLogs()">Limpar</button>
+        <div style="display: flex; gap: 12px;">
+          <button class="log-btn" onclick="copyLogs()">📋 Copiar Logs</button>
+          <button class="log-btn" onclick="clearLogs()">🗑️ Limpar</button>
+        </div>
       </div>
       <div id="logBox" class="log-box">Pronto. Toque em "Conectar Cooler" para iniciar.</div>
     </div>
@@ -550,6 +553,24 @@
 
     function clearLogs() {
       document.getElementById('logBox').textContent = '';
+    }
+
+    function copyLogs() {
+      const box = document.getElementById('logBox');
+      const text = box.textContent;
+      if (!text || text.trim() === '') {
+        alert('O console está vazio.');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Logs copiados com sucesso! Cole na conversa.');
+        }).catch(() => {
+          prompt('Copie os logs abaixo:', text);
+        });
+      } else {
+        prompt('Copie os logs abaixo:', text);
+      }
     }
 
     function updateTempDisplay(celsius) {
@@ -645,7 +666,7 @@
 
         if (acceptAll) {
           requestOptions.acceptAllDevices = true;
-          log('Abrindo seletor (todos os dispositivos Bluetooth)...');
+          log('Abrindo seletor (todos os aparelhos Bluetooth)...');
         } else {
           requestOptions.filters = [
             { namePrefix: 'RM' },
@@ -662,15 +683,37 @@
         log(`Dispositivo selecionado: "${bleDevice.name || 'Sem nome'}"`);
         log('Conectando ao GATT Server...');
 
-        gattServer = await bleDevice.gatt.connect();
-        log('GATT Conectado com sucesso!');
+        try {
+          gattServer = await bleDevice.gatt.connect();
+        } catch (firstErr) {
+          log(`Aviso: 1ª tentativa falhou (${firstErr.message}). Tentando novamente em 600ms...`);
+          await new Promise(r => setTimeout(r, 600));
+          gattServer = await bleDevice.gatt.connect();
+        }
 
-        log('Aguardando 600ms para negociação de conexão...');
-        await new Promise(r => setTimeout(r, 600));
+        log('✓ GATT Conectado com sucesso!');
+        log('Aguardando 700ms para estabilização da conexão BLE...');
+        await new Promise(r => setTimeout(r, 700));
 
-        log('Buscando serviço do cooler (0xd52082ad)...');
-        const service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);
-        log('Serviço principal localizado!');
+        log('Descobrindo serviços...');
+        let service = null;
+        try {
+          service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);
+          log('✓ Serviço principal do cooler (0xd52082ad) localizado!');
+        } catch (sErr) {
+          log(`! Busca direta falhou: ${sErr.message}`);
+          log('Varrendo todos os serviços disponíveis no cooler...');
+          const allServices = await gattServer.getPrimaryServices();
+          log(`Total de serviços encontrados: ${allServices.length}`);
+          for (const s of allServices) {
+            log(` - Serviço: ${s.uuid}`);
+            if (s.uuid.toLowerCase().includes('d52082ad')) {
+              service = s;
+              log(' -> Encontrado serviço correspondente!');
+            }
+          }
+          if (!service) throw sErr;
+        }
 
         // 1. Característica de Velocidade
         try {
@@ -698,10 +741,14 @@
             updateTempDisplay(deg);
           });
 
-          // Ler temperatura inicial imediatamente
-          const initialVal = await tempChar.readValue();
-          if (initialVal && initialVal.byteLength > 0) {
-            updateTempDisplay(initialVal.getUint8(0));
+          // Ler temperatura inicial imediatamente se suportado
+          try {
+            const initialVal = await tempChar.readValue();
+            if (initialVal && initialVal.byteLength > 0) {
+              updateTempDisplay(initialVal.getUint8(0));
+            }
+          } catch (readErr) {
+            // Notificações continuarão atualizando
           }
           log('✓ Monitor de temperatura (0x1015) ativo!');
         } catch (e) {
@@ -726,7 +773,19 @@
         }, 12000);
 
       } catch (err) {
-        log(`FALHA NA CONEXÃO: ${err.message}`);
+        log(`\n❌ FALHA NA CONEXÃO: [${err.name}] ${err.message}`);
+        if (err.name === 'NotFoundError') {
+          log('💡 Dica: O aparelho não foi escolhido ou não apareceu.');
+          log('-> Marque a caixinha "Mostrar todos os aparelhos Bluetooth" e tente de novo.');
+          log('-> Certifique-se de que o cooler está com o cabo USB conectado.');
+        } else if (err.name === 'NetworkError') {
+          log('💡 Dica: Conexão BLE rejeitada ou ocupada.');
+          log('-> IMPORTANTE: Desconecte o cooler do cabo USB por 5 segundos e ligue novamente (reinicia o Bluetooth dele).');
+          log('-> Feche outros apps como o nRF Connect se ainda estiverem abertos.');
+        } else if (err.name === 'SecurityError') {
+          log('💡 Dica: Permissão negada no Chrome.');
+          log('-> Vá em Configurações > Apps > Chrome > Permissões > Dispositivos por perto > Permitir.');
+        }
         setUiConnected(false);
       }
     }
