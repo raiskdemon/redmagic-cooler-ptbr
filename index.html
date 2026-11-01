@@ -2,26 +2,33 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0c14">
   <title>RedMagic Cooler - Web Controller</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --card: #1a1d26;
-      --primary: #ff2d55;
-      --primary-hover: #e02449;
-      --accent: #00e5ff;
-      --text: #ffffff;
-      --text-muted: #8b949e;
+      --bg: #090b10;
+      --card-bg: #141722;
+      --card-border: #232838;
+      --primary: #ff2a51;
+      --primary-glow: rgba(255, 42, 81, 0.4);
+      --accent: #00f0ff;
+      --accent-glow: rgba(0, 240, 255, 0.35);
+      --text: #f0f3f8;
+      --text-muted: #8b95a5;
       --success: #00e676;
-      --border: #2d3342;
+      --warning: #ffb300;
+      --card-radius: 18px;
     }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
+
     body {
       background-color: var(--bg);
       color: var(--text);
@@ -29,219 +36,496 @@
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 20px 16px;
+      padding: 16px;
     }
-    .header {
+
+    .container {
       width: 100%;
       max-width: 480px;
-      text-align: center;
-      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
+
+    /* HEADER */
+    .header {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+
     .header h1 {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #ff2a51 0%, #ff6b8b 50%, #00f0ff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
     }
+
+    .header-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 20px;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 30px;
       font-size: 13px;
       font-weight: 600;
-      background: #252a37;
+      background: #191c28;
       color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      transition: all 0.3s ease;
     }
+
     .status-badge.connected {
-      background: rgba(0, 230, 118, 0.15);
+      background: rgba(0, 230, 118, 0.12);
       color: var(--success);
+      border-color: rgba(0, 230, 118, 0.35);
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.2);
     }
+
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: currentColor;
     }
+
+    /* CARDS */
     .card {
-      width: 100%;
-      max-width: 480px;
-      background-color: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      padding: 18px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
     }
+
     .card-title {
-      font-size: 15px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
       margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    .disabled {
+      opacity: 0.35;
+      pointer-events: none;
+      filter: grayscale(0.5);
+    }
+
+    /* BUTTONS */
     .btn {
       width: 100%;
-      background: var(--primary);
-      color: white;
+      background: linear-gradient(135deg, #ff2a51, #e01e44);
+      color: #fff;
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 14px 20px;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 6px 20px var(--primary-glow);
+      transition: all 0.2s ease;
     }
+
     .btn:active {
       transform: scale(0.98);
-      background: var(--primary-hover);
+      filter: brightness(0.9);
     }
-    .btn.btn-outline {
+
+    .btn-outline {
       background: transparent;
-      border: 1px solid var(--border);
+      border: 1px solid #363c50;
       color: var(--text-muted);
-      margin-top: 10px;
+      box-shadow: none;
     }
-    .btn.btn-outline:active {
-      background: #252a37;
-      color: white;
+
+    .btn-outline:active {
+      background: #1c2130;
+      color: #fff;
     }
-    .slider-group {
-      margin-top: 10px;
-    }
-    .slider-label {
+
+    /* SCAN OPTIONS */
+    .scan-options {
       display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .scan-options input[type="checkbox"] {
+      accent-color: var(--primary);
+      width: 15px;
+      height: 15px;
+    }
+
+    /* TEMPERATURE DISPLAY */
+    .temp-card {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.06), rgba(20, 23, 34, 0.8));
+      border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .temp-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .temp-label {
+      font-size: 12px;
       font-weight: 600;
-    }
-    .slider-val {
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
       color: var(--accent);
-      font-size: 18px;
     }
+
+    .temp-status {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .temp-display {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .temp-val {
+      font-size: 44px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .temp-unit {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* FAN CONTROLS */
+    .fan-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .fan-icon-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .fan-spinner {
+      width: 24px;
+      height: 24px;
+      animation: spin 0s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .slider-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
+      text-shadow: 0 0 10px var(--primary-glow);
+    }
+
     input[type=range] {
       width: 100%;
-      height: 8px;
-      border-radius: 5px;
-      background: #2d3342;
+      height: 10px;
+      border-radius: 6px;
+      background: #242a3a;
       outline: none;
       -webkit-appearance: none;
       appearance: none;
+      margin: 12px 0 16px;
     }
+
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       background: var(--primary);
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(255, 45, 85, 0.5);
+      box-shadow: 0 0 12px var(--primary-glow);
+      border: 2px solid #fff;
     }
-    .preset-btns {
+
+    .preset-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: 14px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
     }
+
     .preset-btn {
-      background: #252a37;
-      border: 1px solid var(--border);
-      color: white;
+      background: #1c202e;
+      border: 1px solid var(--card-border);
+      color: #fff;
       padding: 10px 0;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
+
     .preset-btn:active {
       background: var(--primary);
+      border-color: var(--primary);
     }
-    .rgb-btns {
+
+    /* RGB CONTROLS */
+    .rgb-modes-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .rgb-mode-btn {
+      background: #1c202e;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .rgb-mode-btn:active {
+      background: #2b3247;
+      border-color: var(--accent);
+    }
+
+    .color-section {
+      display: flex;
+      flex-direction: column;
       gap: 10px;
     }
+
+    .color-picker-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1e2c;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 14px;
+    }
+
+    .color-picker-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .custom-color-input {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 44px;
+      height: 32px;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .custom-color-input::-webkit-color-swatch {
+      border-radius: 8px;
+      border: 2px solid #fff;
+    }
+
+    .color-palette {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .color-dot {
+      flex: 1;
+      height: 34px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .color-dot:active {
+      transform: scale(0.92);
+      border-color: #fff;
+    }
+
+    /* LOG BOX */
     .log-box {
       width: 100%;
-      max-width: 480px;
-      background: #090a0f;
-      border: 1px solid #1f2430;
+      background: #06070a;
+      border: 1px solid #1a1e2a;
       border-radius: 12px;
-      padding: 12px;
+      padding: 10px 12px;
       font-family: 'Courier New', Courier, monospace;
-      font-size: 12px;
+      font-size: 11px;
       color: #7ee787;
-      height: 180px;
+      height: 140px;
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-all;
     }
-    .disabled {
-      opacity: 0.4;
-      pointer-events: none;
+
+    .log-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .log-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>REDMAGIC COOLER</h1>
-    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Web Bluetooth Controller (Sem APK)</p>
-    <div id="statusBadge" class="status-badge">
-      <span class="status-dot"></span>
-      <span id="statusText">Desconectado</span>
+  <div class="container">
+    <!-- HEADER -->
+    <div class="header">
+      <h1>RedMagic Cooler</h1>
+      <p class="header-sub">Controle Web Bluetooth no Chrome (Sem APK)</p>
+      <div id="statusBadge" class="status-badge">
+        <span class="status-dot"></span>
+        <span id="statusText">Desconectado</span>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <button id="connectBtn" class="btn" onclick="connectBle()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="m7 7 10 10-5 5V2l5 5L7 17"></path>
-      </svg>
-      Conectar Cooler
-    </button>
-    <button id="disconnectBtn" class="btn btn-outline" style="display: none;" onclick="disconnectBle()">
-      Desconectar
-    </button>
-  </div>
+    <!-- CONNECTION CARD -->
+    <div class="card">
+      <button id="connectBtn" class="btn" onclick="connectBle()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m7 7 10 10-5 5V2l5 5L7 17"></path>
+        </svg>
+        Conectar Cooler
+      </button>
+      <button id="disconnectBtn" class="btn btn-outline" style="display: none;" onclick="disconnectBle()">
+        Desconectar Cooler
+      </button>
+      <div class="scan-options">
+        <label>
+          <input type="checkbox" id="acceptAllCheck"> Mostrar todos os aparelhos Bluetooth
+        </label>
+      </div>
+    </div>
 
-  <div id="controlsSection" class="card disabled">
-    <div class="card-title">Velocidade da Ventoinha</div>
-    <div class="slider-group">
-      <div class="slider-label">
-        <span>Potência</span>
+    <!-- TEMPERATURE CARD -->
+    <div id="tempCard" class="card temp-card disabled">
+      <div class="temp-info">
+        <span class="temp-label">Temperatura do Cooler</span>
+        <span id="tempStatus" class="temp-status">Sensor ativo</span>
+      </div>
+      <div class="temp-display">
+        <span id="tempValue" class="temp-val">--</span>
+        <span class="temp-unit">°C</span>
+      </div>
+    </div>
+
+    <!-- FAN SPEED CARD -->
+    <div id="fanCard" class="card disabled">
+      <div class="card-title">
+        <div class="fan-icon-wrap">
+          <svg id="fanIcon" class="fan-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 9V3c2.5 0 4 1.5 4 3s-1.5 3-4 3Z"></path>
+            <path d="M15 12h6c0 2.5-1.5 4-3 4s-3-1.5-3-4Z"></path>
+            <path d="M12 15v6c-2.5 0-4-1.5-4-3s1.5-3 4-3Z"></path>
+            <path d="M9 12H3c0-2.5 1.5-4 3-4s3 1.5 3 4Z"></path>
+          </svg>
+          <span>Velocidade da Ventoinha</span>
+        </div>
         <span id="speedValueText" class="slider-val">0%</span>
       </div>
-      <input type="range" id="fanSlider" min="0" max="100" value="0" oninput="onSliderChange(this.value)">
+      <input type="range" id="fanSlider" min="0" max="100" value="0" oninput="onSliderInput(this.value)">
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setSpeed(0)">0%</button>
+        <button class="preset-btn" onclick="setSpeed(25)">25%</button>
+        <button class="preset-btn" onclick="setSpeed(50)">50%</button>
+        <button class="preset-btn" onclick="setSpeed(75)">75%</button>
+        <button class="preset-btn" onclick="setSpeed(100)">100%</button>
+      </div>
     </div>
-    <div class="preset-btns">
-      <button class="preset-btn" onclick="setSpeed(0)">0%</button>
-      <button class="preset-btn" onclick="setSpeed(35)">35%</button>
-      <button class="preset-btn" onclick="setSpeed(70)">70%</button>
-      <button class="preset-btn" onclick="setSpeed(100)">100%</button>
+
+    <!-- RGB LIGHTING CARD -->
+    <div id="rgbCard" class="card disabled">
+      <div class="card-title">Iluminação RGB</div>
+      <div class="rgb-modes-grid">
+        <button class="rgb-mode-btn" onclick="setRgbMode(1)">🌈 Arco-íris</button>
+        <button class="rgb-mode-btn" onclick="setRgbMode(2)">💨 Respiração</button>
+        <button class="rgb-mode-btn" onclick="setRgbOff()">⬛ Desligar LEDs</button>
+        <button class="rgb-mode-btn" onclick="applyCustomColor()">🎨 Aplicar Cor</button>
+      </div>
+
+      <div class="color-section">
+        <div class="color-picker-wrap">
+          <span class="color-picker-label">Cor personalizada:</span>
+          <input type="color" id="rgbPicker" class="custom-color-input" value="#ff2a51" onchange="onColorPickerChange(this.value)">
+        </div>
+        <div class="color-palette">
+          <button class="color-dot" style="background: #ff2a51;" title="Vermelho" onclick="setRgbColor(255, 42, 81)"></button>
+          <button class="color-dot" style="background: #00f0ff;" title="Ciano" onclick="setRgbColor(0, 240, 255)"></button>
+          <button class="color-dot" style="background: #00e676;" title="Verde" onclick="setRgbColor(0, 230, 118)"></button>
+          <button class="color-dot" style="background: #b500ff;" title="Roxo" onclick="setRgbColor(181, 0, 255)"></button>
+          <button class="color-dot" style="background: #ffd600;" title="Amarelo" onclick="setRgbColor(255, 214, 0)"></button>
+          <button class="color-dot" style="background: #ffffff;" title="Branco" onclick="setRgbColor(255, 255, 255)"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG TERMINAL -->
+    <div>
+      <div class="card-title" style="margin-bottom: 6px;">
+        <span>Console de Diagnóstico</span>
+        <button class="log-btn" onclick="clearLogs()">Limpar</button>
+      </div>
+      <div id="logBox" class="log-box">Pronto. Toque em "Conectar Cooler" para iniciar.</div>
     </div>
   </div>
-
-  <div id="rgbSection" class="card disabled">
-    <div class="card-title">Iluminação RGB</div>
-    <div class="rgb-btns">
-      <button class="preset-btn" onclick="setRgbMode(1)">Arco-íris</button>
-      <button class="preset-btn" onclick="setRgbMode(2)">Respiração</button>
-      <button class="preset-btn" onclick="setRgbColor(255, 0, 0)">Vermelho Fixo</button>
-      <button class="preset-btn" onclick="setRgbColor(0, 229, 255)">Azul Fixo</button>
-    </div>
-  </div>
-
-  <div class="card-title" style="max-width: 480px; width: 100%; margin-bottom: 6px;">Logs em Tempo Real:</div>
-  <div id="logBox" class="log-box">Aguardando conexão...</div>
 
   <script>
     const FAN_SERVICE_UUID = 'd52082ad-e805-9f97-9d4e-1c682d9c9ce6';
@@ -253,6 +537,8 @@
     let gattServer = null;
     let fanChar = null;
     let lightChar = null;
+    let tempChar = null;
+    let keepAliveTimer = null;
 
     function log(msg) {
       const box = document.getElementById('logBox');
@@ -262,96 +548,183 @@
       console.log(`[${time}] ${msg}`);
     }
 
+    function clearLogs() {
+      document.getElementById('logBox').textContent = '';
+    }
+
+    function updateTempDisplay(celsius) {
+      const tempVal = document.getElementById('tempValue');
+      const tempStatus = document.getElementById('tempStatus');
+      tempVal.textContent = celsius;
+
+      if (celsius <= 10) {
+        tempStatus.textContent = 'Congelando ❄️';
+        tempVal.style.color = '#00f0ff';
+      } else if (celsius <= 18) {
+        tempStatus.textContent = 'Frio Ideal 🧊';
+        tempVal.style.color = '#00e676';
+      } else if (celsius <= 26) {
+        tempStatus.textContent = 'Normal 🌡️';
+        tempVal.style.color = '#ffd600';
+      } else {
+        tempStatus.textContent = 'Aquecido 🔥';
+        tempVal.style.color = '#ff2a51';
+      }
+    }
+
+    function updateFanAnimation(speed) {
+      const icon = document.getElementById('fanIcon');
+      if (speed <= 0) {
+        icon.style.animationDuration = '0s';
+      } else {
+        // Mais rápido conforme a velocidade aumenta (de 1.5s até 0.15s)
+        const duration = 1.6 - (speed / 100) * 1.45;
+        icon.style.animationDuration = `${duration.toFixed(2)}s`;
+      }
+    }
+
     function setUiConnected(connected, name = '') {
       const badge = document.getElementById('statusBadge');
       const text = document.getElementById('statusText');
       const connBtn = document.getElementById('connectBtn');
       const disconnBtn = document.getElementById('disconnectBtn');
-      const controls = document.getElementById('controlsSection');
-      const rgb = document.getElementById('rgbSection');
+      const tempCard = document.getElementById('tempCard');
+      const fanCard = document.getElementById('fanCard');
+      const rgbCard = document.getElementById('rgbCard');
 
       if (connected) {
         badge.classList.add('connected');
-        text.textContent = `Conectado: ${name}`;
+        text.textContent = name ? `Conectado: ${name}` : 'Conectado';
         connBtn.style.display = 'none';
         disconnBtn.style.display = 'flex';
-        controls.classList.remove('disabled');
-        rgb.classList.remove('disabled');
+        tempCard.classList.remove('disabled');
+        fanCard.classList.remove('disabled');
+        rgbCard.classList.remove('disabled');
       } else {
         badge.classList.remove('connected');
         text.textContent = 'Desconectado';
         connBtn.style.display = 'flex';
         disconnBtn.style.display = 'none';
-        controls.classList.add('disabled');
-        rgb.classList.add('disabled');
+        tempCard.classList.add('disabled');
+        fanCard.classList.add('disabled');
+        rgbCard.classList.add('disabled');
+        updateFanAnimation(0);
+        document.getElementById('tempValue').textContent = '--';
+      }
+    }
+
+    async function writeGatt(characteristic, data) {
+      if (!characteristic) throw new Error('Característica nula');
+      if (characteristic.writeValueWithResponse) {
+        await characteristic.writeValueWithResponse(data);
+      } else {
+        await characteristic.writeValue(data);
       }
     }
 
     async function connectBle() {
       if (!navigator.bluetooth) {
-        alert('Seu navegador não suporta Web Bluetooth! Use o Google Chrome no celular.');
-        log('ERRO: navigator.bluetooth não está disponível.');
+        alert('Seu navegador não suporta Web Bluetooth!\nAbra esta página no aplicativo Google Chrome para Android.');
+        log('ERRO: navigator.bluetooth indisponível neste navegador.');
         return;
       }
 
       try {
-        log('Solicitando dispositivo Bluetooth...');
-        bleDevice = await navigator.bluetooth.requestDevice({
-          filters: [
-            { namePrefix: 'RM ' },
-            { namePrefix: 'RedMagic' },
-            { namePrefix: 'Cooler' },
-            { namePrefix: 'PA5115' }
-          ],
+        const acceptAll = document.getElementById('acceptAllCheck').checked;
+        let requestOptions = {
           optionalServices: [
             FAN_SERVICE_UUID,
             '0000ae00-0000-1000-8000-00805f9b34fb',
             '00004a40-0000-1000-8000-00805f9b34fb',
-            '00004a41-0000-1000-8000-00805f9b34fb'
+            '00004a41-0000-1000-8000-00805f9b34fb',
+            '5833ff01-9b8b-5191-6142-22a4536ef123',
+            '0000fff0-0000-1000-8000-00805f9b34fb',
+            '0000180a-0000-1000-8000-00805f9b34fb'
           ]
-        });
+        };
 
+        if (acceptAll) {
+          requestOptions.acceptAllDevices = true;
+          log('Abrindo seletor (todos os dispositivos Bluetooth)...');
+        } else {
+          requestOptions.filters = [
+            { namePrefix: 'RM' },
+            { namePrefix: 'RedMagic' },
+            { namePrefix: 'Cooler' },
+            { namePrefix: 'PA' }
+          ];
+          log('Abrindo seletor (filtrando por RM / RedMagic / Cooler)...');
+        }
+
+        bleDevice = await navigator.bluetooth.requestDevice(requestOptions);
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-        log(`Dispositivo selecionado: ${bleDevice.name} (${bleDevice.id})`);
+        log(`Dispositivo selecionado: "${bleDevice.name || 'Sem nome'}"`);
         log('Conectando ao GATT Server...');
 
         gattServer = await bleDevice.gatt.connect();
         log('GATT Conectado com sucesso!');
-        log('Aguardando 1.2s para estabilização dos parâmetros de conexão...');
-        await new Promise(r => setTimeout(r, 1200));
 
-        log('Descobrindo serviços primários...');
+        log('Aguardando 600ms para negociação de conexão...');
+        await new Promise(r => setTimeout(r, 600));
+
+        log('Buscando serviço do cooler (0xd52082ad)...');
         const service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);
-        log(`Serviço ${FAN_SERVICE_UUID} encontrado!`);
+        log('Serviço principal localizado!');
 
+        // 1. Característica de Velocidade
         try {
           fanChar = await service.getCharacteristic(FAN_SPEED_UUID);
-          log('Característica de Fan Speed (0x1012) obtida!');
+          log('✓ Controle de velocidade (0x1012) pronto.');
         } catch (e) {
-          log(`Aviso ao obter Fan Char: ${e.message}`);
+          log(`! Aviso velocidade: ${e.message}`);
         }
 
+        // 2. Característica de Iluminação RGB
         try {
           lightChar = await service.getCharacteristic(FAN_LIGHT_UUID);
-          log('Característica de Luz RGB (0x1013) obtida!');
+          log('✓ Controle de iluminação RGB (0x1013) pronto.');
         } catch (e) {
-          log(`Aviso ao obter Light Char: ${e.message}`);
+          log(`! Aviso RGB: ${e.message}`);
         }
 
+        // 3. Característica de Temperatura (Notificações)
         try {
-          const tempChar = await service.getCharacteristic(FAN_TEMP_UUID);
+          tempChar = await service.getCharacteristic(FAN_TEMP_UUID);
           await tempChar.startNotifications();
           tempChar.addEventListener('characteristicvaluechanged', (e) => {
             const val = e.target.value;
-            log(`Notificação Temp: ${val.getUint8(0)}°C`);
+            const deg = val.getUint8(0);
+            updateTempDisplay(deg);
           });
-          log('Notificações de temperatura habilitadas (0x1015)!');
+
+          // Ler temperatura inicial imediatamente
+          const initialVal = await tempChar.readValue();
+          if (initialVal && initialVal.byteLength > 0) {
+            updateTempDisplay(initialVal.getUint8(0));
+          }
+          log('✓ Monitor de temperatura (0x1015) ativo!');
         } catch (e) {
-          log(`Info: Temp char 0x1015: ${e.message}`);
+          log(`! Aviso temperatura: ${e.message}`);
         }
 
         setUiConnected(true, bleDevice.name);
+
+        // Keep-Alive Heartbeat: mantém tráfego a cada 12 segundos para evitar desconexão idle do Android
+        clearInterval(keepAliveTimer);
+        keepAliveTimer = setInterval(async () => {
+          if (gattServer && gattServer.connected && tempChar) {
+            try {
+              const keepVal = await tempChar.readValue();
+              if (keepVal && keepVal.byteLength > 0) {
+                updateTempDisplay(keepVal.getUint8(0));
+              }
+            } catch (err) {
+              // Silencioso no keep-alive normal
+            }
+          }
+        }, 12000);
+
       } catch (err) {
         log(`FALHA NA CONEXÃO: ${err.message}`);
         setUiConnected(false);
@@ -359,11 +732,13 @@
     }
 
     function onDisconnected() {
-      log('Dispositivo foi desconectado.');
+      log('Dispositivo Bluetooth desconectado.');
+      clearInterval(keepAliveTimer);
       setUiConnected(false);
     }
 
     function disconnectBle() {
+      clearInterval(keepAliveTimer);
       if (bleDevice && bleDevice.gatt.connected) {
         bleDevice.gatt.disconnect();
       }
@@ -378,52 +753,96 @@
     async function setSpeed(percent) {
       document.getElementById('fanSlider').value = percent;
       document.getElementById('speedValueText').textContent = percent + '%';
+      updateFanAnimation(percent);
+
       if (!fanChar) {
-        log('Erro: característica de velocidade não está pronta.');
+        log('Aviso: Característica de ventoinha não está pronta.');
         return;
       }
+
       const raw = percentToRaw(percent);
       try {
         log(`Enviando velocidade: ${percent}% (raw=${raw})...`);
         const data = new Uint8Array([raw]);
-        await fanChar.writeValue(data);
-        log(`Velocidade aplicada: ${percent}% com sucesso!`);
+        await writeGatt(fanChar, data);
+        log(`✓ Velocidade ${percent}% aplicada com sucesso!`);
       } catch (e) {
-        log(`Erro ao escrever velocidade: ${e.message}`);
+        log(`Erro ao definir velocidade: ${e.message}`);
       }
     }
 
-    let sliderTimeout = null;
-    function onSliderChange(val) {
+    let sliderDebounce = null;
+    function onSliderInput(val) {
       document.getElementById('speedValueText').textContent = val + '%';
-      clearTimeout(sliderTimeout);
-      sliderTimeout = setTimeout(() => {
+      updateFanAnimation(parseInt(val));
+      clearTimeout(sliderDebounce);
+      sliderDebounce = setTimeout(() => {
         setSpeed(parseInt(val));
-      }, 150);
+      }, 120);
     }
 
     async function setRgbMode(mode) {
-      if (!lightChar) return;
+      if (!lightChar) {
+        log('Aviso: Característica RGB não conectada.');
+        return;
+      }
       try {
-        log(`Definindo modo RGB: ${mode}...`);
+        const modeNames = { 1: 'Arco-íris', 2: 'Respiração' };
+        log(`Enviando modo RGB: ${modeNames[mode] || mode}...`);
         const data = new Uint8Array([mode, 255, 255, 255]);
-        await lightChar.writeValue(data);
-        log('Modo RGB aplicado!');
+        await writeGatt(lightChar, data);
+        log(`✓ Modo RGB ${modeNames[mode] || mode} aplicado!`);
       } catch (e) {
-        log(`Erro ao alterar RGB: ${e.message}`);
+        log(`Erro ao alterar modo RGB: ${e.message}`);
       }
     }
 
     async function setRgbColor(r, g, b) {
-      if (!lightChar) return;
+      if (!lightChar) {
+        log('Aviso: Característica RGB não conectada.');
+        return;
+      }
       try {
         log(`Definindo cor fixa RGB (${r}, ${g}, ${b})...`);
         const data = new Uint8Array([4, r, g, b]);
-        await lightChar.writeValue(data);
-        log('Cor RGB aplicada!');
+        await writeGatt(lightChar, data);
+        log('✓ Cor RGB aplicada com sucesso!');
       } catch (e) {
-        log(`Erro ao alterar cor RGB: ${e.message}`);
+        log(`Erro ao alterar cor: ${e.message}`);
       }
+    }
+
+    async function setRgbOff() {
+      if (!lightChar) return;
+      try {
+        log('Desligando iluminação RGB...');
+        const data = new Uint8Array([4, 0, 0, 0]);
+        await writeGatt(lightChar, data);
+        log('✓ LEDs desligados com sucesso!');
+      } catch (e) {
+        log(`Erro ao desligar LEDs: ${e.message}`);
+      }
+    }
+
+    function hexToRgb(hex) {
+      const clean = hex.replace('#', '');
+      const num = parseInt(clean, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    function onColorPickerChange(hex) {
+      const { r, g, b } = hexToRgb(hex);
+      setRgbColor(r, g, b);
+    }
+
+    function applyCustomColor() {
+      const hex = document.getElementById('rgbPicker').value;
+      const { r, g, b } = hexToRgb(hex);
+      setRgbColor(r, g, b);
     }
   </script>
 </body>
