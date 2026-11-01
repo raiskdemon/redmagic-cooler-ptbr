@@ -318,6 +318,8 @@
 
         gattServer = await bleDevice.gatt.connect();
         log('GATT Conectado com sucesso!');
+        log('Aguardando 1.2s para estabilização dos parâmetros de conexão...');
+        await new Promise(r => setTimeout(r, 1200));
 
         log('Descobrindo serviços primários...');
         const service = await gattServer.getPrimaryService(FAN_SERVICE_UUID);

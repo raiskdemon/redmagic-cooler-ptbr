@@ -761,7 +761,8 @@ class CoolerService : Service() {
                     }
                     
                     serviceScope.launch {
-                        delay(300L)
+                        // Aguardar 1200ms para estabilização dos parâmetros de conexão (7.5ms e 30ms)
+                        delay(1200L)
                         try {
                             @SuppressLint("MissingPermission")
                             if (BlePermissionManager.hasBluetoothConnectPermission(this@CoolerService)) {
@@ -967,6 +968,12 @@ class CoolerService : Service() {
                             val notifCharacteristic = fanService?.getCharacteristic(CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID)
                             if (notifCharacteristic != null) {
                                 gatt.setCharacteristicNotification(notifCharacteristic, true)
+                                val descriptor = notifCharacteristic.getDescriptor(java.util.UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                                if (descriptor != null) {
+                                    @Suppress("DEPRECATION")
+                                    descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                    gatt.writeDescriptor(descriptor)
+                                }
                                 Log.d(TAG, "Notificaciones habilitadas en: ${CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID}")
                             }
                             // También en la characteristic del fan
@@ -990,6 +997,19 @@ class CoolerService : Service() {
             @Suppress("DEPRECATION")
             val data = characteristic.value
             if (data != null && data.isNotEmpty()) {
+                if (characteristic.uuid == CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID) {
+                    val temp = data[0].toInt() and 0xFF
+                    currentTemp = temp.toFloat()
+                    val statusText = when {
+                        currentTemp >= ThermalMonitor.TEMP_CRITICAL -> "Crítico"
+                        currentTemp >= ThermalMonitor.TEMP_HOT -> "Quente"
+                        currentTemp >= ThermalMonitor.TEMP_WARM -> "Morno"
+                        else -> "Normal"
+                    }
+                    updateNotification(statusText, currentSpeed, currentTemp)
+                    logDebug("Temperatura recebida do cooler: ${temp}°C")
+                    return
+                }
                 val rawSpeed = data[0].toInt() and 0xFF
                 val speedPercent = MainActivity.mapRawToPercent(rawSpeed)
                 

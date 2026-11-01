@@ -163,7 +163,7 @@ class MainActivity : ComponentActivity() {
                                 discoveryTimeoutJob = null
                                 
                                 monitoringScope.launch {
-                                    delay(500L)
+                                    delay(1200L)
                                     if (isFinishing || isDestroyed || !isConnected) return@launch
                                     runOnUiThread {
                                         startServiceDiscovery()
@@ -1051,9 +1051,9 @@ class MainActivity : ComponentActivity() {
                             return@runOnUiThread
                         }
 
-                        // Delay de 500ms para o stack Bluetooth estabilizar ou disparar requisição de pareamento
+                        // Delay de 1200ms para aguardar os dois updates de parâmetros de conexão (7.5ms e 30ms) do cooler
                         monitoringScope.launch {
-                            delay(500L)
+                            delay(1200L)
                             if (isFinishing || isDestroyed || !isConnected) return@launch
                             
                             val bondState = try {
@@ -1235,10 +1235,15 @@ class MainActivity : ComponentActivity() {
                     @Suppress("DEPRECATION")
                     val data = characteristic.value
                     if (data != null && data.isNotEmpty()) {
-                        val rawSpeed = data[0].toInt() and 0xFF
-                        val speedPercent = mapRawToPercent(rawSpeed)
-                        currentCoolerSpeed = speedPercent
-                        Log.d(TAG, "Velocidad leída: $rawSpeed raw → $speedPercent%")
+                        if (characteristic.uuid == CoolerBleConstants.TEMPERATURE_NOTIFICATION_UUID) {
+                            val temp = data[0].toInt() and 0xFF
+                            Log.d(TAG, "Temperatura do cooler recebida: ${temp}°C")
+                        } else {
+                            val rawSpeed = data[0].toInt() and 0xFF
+                            val speedPercent = mapRawToPercent(rawSpeed)
+                            currentCoolerSpeed = speedPercent
+                            Log.d(TAG, "Velocidade lida: $rawSpeed raw → $speedPercent%")
+                        }
                     }
                 } else {
                     Log.e(TAG, "Error leyendo characteristic: $status")
